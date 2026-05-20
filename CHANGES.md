@@ -1,5 +1,13 @@
 # Changes
 
+## v0.14
+
+- Added `TRACKER_SIGNALS.md` with raw params, movement/idling interpretation, GPS quality notes, odometer notes, crash/driving-style fields, and accelerometer axis meanings.
+- Added `DESIGN_NOTES.md` explaining why raw GPS is canonical, why Gator processed drive/stop exports are not trusted as truth, and how GoGator should preserve source evidence.
+- Updated `README.md`, `AGENTS.md`, `CODEX.md`, and `COMMANDS.md` with richer context so future Codex/GitHub work does not lose detail.
+- Documented accelerometer fields: `g0` X-axis left/right, `g1` Y-axis forward/back, and `g2` Z-axis up/down.
+- Reinforced that useful raw tracker signals should be preserved in expanded/audit outputs rather than discarded.
+
 ## v0.13
 
 - Renamed the Go project from `gatorlog` to `GoGator`.

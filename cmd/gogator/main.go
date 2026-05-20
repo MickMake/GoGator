@@ -168,8 +168,10 @@ Examples:
   %[1]s process 2026-04_raw.csv --timezone Australia/Sydney
   %[1]s process exports/2026-04_raw.csv --config gogator.yaml --sites addresses.csv --routes routes.csv
 Notes:
-  - Raw GPS remains canonical. Processed Gator drive/stop exports are not trusted.
+  - Raw GPS remains canonical because processed Gator drive/stop exports have shown suspicious timestamp and trip-detection behaviour.
   - Matched sites keep the observed/noisy GPS coordinate from the tracker output.
+  - Expanded/audit detail should preserve useful tracker signals such as io24, io251, pdop, io14, io247, io253, io303, g0, g1, and g2.
+  - g0/g1/g2 are raw X/Y/Z acceleration vectors: X left/right, Y forward/back, Z up/down.
   - Unknown or weakly proven destinations are labelled CHECK, because goblins dislike evidence.
 
 Command: %[1]s add_route <route_observations.csv> <index>
@@ -193,7 +195,7 @@ func processHelp() {
   %[1]s process <raw-gps.csv> [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]
 
 Intent:
-  Process raw GPS CSV as the source of truth and produce spreadsheet-friendly trip logs.
+  Process raw GPS CSV as the source of truth and produce spreadsheet-friendly trip logs. Preserve enough raw tracker detail to debug suspicious timestamp, trip-detection, GPS, and accelerometer behaviour.
 
 Examples:
   %[1]s process 2026-04_raw.csv

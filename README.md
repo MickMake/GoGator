@@ -2,7 +2,7 @@
 
 Deterministic Go CLI processor for Gator/Teltonika raw GPS CSV exports.
 
-GoGator treats the raw GPS export as canonical. Gator's processed drive/stop exports are useful as a comparison point, but they are not trusted as the source of truth. This is how we avoid giving spreadsheet goblins a clipboard and authority.
+GoGator treats the raw GPS export as canonical. Gator's processed drive/stop exports are useful as a comparison point, but they are not trusted as the source of truth because they have shown suspicious timestamp and trip-detection behaviour. This is how we avoid giving spreadsheet goblins a clipboard and authority.
 
 ## Usage
 
@@ -58,6 +58,16 @@ gogator add_route 2026-04_route_observations.csv 3 --routes my_routes.csv
 
 Routes are advisory only. They can confirm common routes and flag anomalies, but must not silently rewrite destinations.
 
+## Reference docs for future builds
+
+These files are included to give Codex and future maintainers enough context without depending on old chat prompts:
+
+- `AGENTS.md`: project rules and source-map for agent/Codex work.
+- `CODEX.md`: compact implementation context.
+- `COMMANDS.md`: command intent and examples.
+- `TRACKER_SIGNALS.md`: raw `params`, movement, quality, accelerometer, and crash/driving-style signal notes.
+- `DESIGN_NOTES.md`: design intent, why raw GPS is canonical, and evidence-preservation rules.
+
 ## Raw GPS input
 
 Supported raw GPS fields:
@@ -72,6 +82,22 @@ Raw row numbering matches source file line numbers:
 
 - headed file: row 1 is the header and first data row is raw row 2
 - headerless file: first data row is raw row 1
+
+
+## Tracker params and accelerometer detail
+
+The raw `params` field is unordered key/value data and is expanded into stable columns in a fixed order. Important signals include:
+
+- `io24`: movement state; `0` is strong stationary evidence and `1` is strong movement evidence.
+- `io251`: idling status; `1` is idling/stationary evidence, but `0` is not proof of movement.
+- `pdop`: GPS geometry/quality hint. Useful, but not sufficient by itself.
+- `io14`: odometer in metres where available. Useful for detecting false stationary GPS teleports.
+- `io247`, `io253`, `io303`: crash/driving-style/event signals to preserve.
+- `g0`: raw X-axis acceleration, left/right vector.
+- `g1`: raw Y-axis acceleration, forward/back vector.
+- `g2`: raw Z-axis acceleration, up/down vector.
+
+See `TRACKER_SIGNALS.md` for the fuller reference.
 
 ## Address/site CSV
 

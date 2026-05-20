@@ -4,7 +4,7 @@
 
 GoGator is a local Go 1.22 CLI for processing raw Gator/Teltonika GPS CSV exports into deterministic, spreadsheet-friendly trip logs.
 
-Raw GPS CSV is canonical. Do not use Gator's processed drive/stop exports as the source of truth.
+Raw GPS CSV is canonical. Do not use Gator's processed drive/stop exports as the source of truth; they have shown suspicious timestamp and trip-detection behaviour.
 
 ## Non-negotiable behaviours
 
@@ -15,6 +15,8 @@ Raw GPS CSV is canonical. Do not use Gator's processed drive/stop exports as the
 - Prefer durable rules over one-off fixes for individual CHECK rows.
 - Keep routes advisory only. They may annotate or flag, but must not silently rewrite destinations.
 - Build and test before packaging.
+- Preserve tracker signal detail: `io24`, `io251`, `pdop`, `io14`, `io247`, `io253`, `io303`, `g0`, `g1`, and `g2` are useful evidence, not disposable noise.
+- Treat `g0`, `g1`, and `g2` as raw X/Y/Z accelerometer values: X left/right, Y forward/back, Z up/down.
 
 ## Development environment
 
@@ -50,3 +52,10 @@ GoGator-v0.13.zip
 ```
 
 Maintain `CHANGES.md` with user-visible changes.
+
+
+## Context reference files
+
+- `TRACKER_SIGNALS.md`: raw params, movement/idling signals, accelerometer axis meanings, crash/driving-style fields, and debugging value.
+- `DESIGN_NOTES.md`: why raw GPS is canonical, local enrichment model, evidence-preservation rules, CHECK philosophy, and output stability.
+- `COMMANDS.md`: CLI command intent and examples.
