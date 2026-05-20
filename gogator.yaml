@@ -1,0 +1,33 @@
+timezone: Australia/Sydney
+sites: addresses.csv
+routes: routes.csv
+
+trip_detection:
+  moving_speed_kph: 7
+  min_trip_distance_m: 150
+  min_trip_duration_seconds: 60
+  min_stop_duration_seconds: 60
+  poor_pdop_threshold: 5
+  ideal_pdop_threshold: 2
+  same_site_jitter_radius_m: 100
+  accelerometer_nonzero_supports_motion: false
+  stationary_teleport_guard_enabled: true
+  stationary_teleport_min_jump_m: 250
+  stationary_teleport_requires_odometer: true
+  same_site_micro_trip_max_km: 1.5
+  same_site_micro_trip_max_minutes: 10
+  same_site_guard_radius_m: 750
+
+site_matching:
+  default_radius_m: 100
+  default_min_destination_minutes: 5
+  unknown_check_min_destination_minutes: 10
+  stationary_dwell_ratio_required: 0.70
+  infer_silent_stop_gaps: true
+  silent_stop_min_gap_minutes: 5
+  unknown_site_label: CHECK
+  home_site_name: Home
+
+raw_time:
+  source: gator_raw_utc_plus_one_day
+  correction_hours: -24

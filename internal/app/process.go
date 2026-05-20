@@ -1,0 +1,182 @@
+package app
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
+	"gogator/internal/config"
+	"gogator/internal/gps"
+	"gogator/internal/output"
+	"gogator/internal/routes"
+	"gogator/internal/sites"
+)
+
+type Options struct {
+	Input      string
+	ConfigPath string
+	SitesPath  string
+	RoutesPath string
+	Timezone   string
+}
+
+func RunProcess(opts Options) error {
+	if opts.Input == "" {
+		return fmt.Errorf("missing input CSV")
+	}
+	if opts.ConfigPath == "" {
+		opts.ConfigPath = DefaultConfigPath()
+	}
+	cfg, err := config.Load(opts.ConfigPath)
+	if err != nil {
+		return err
+	}
+	if envTZ := os.Getenv("GATORLOG_TIMEZONE"); envTZ != "" {
+		cfg.Timezone = envTZ
+	}
+	if envTZ := os.Getenv("GOGATOR_TIMEZONE"); envTZ != "" {
+		cfg.Timezone = envTZ
+	}
+	if opts.Timezone != "" {
+		cfg.Timezone = opts.Timezone
+	}
+	if opts.SitesPath != "" {
+		cfg.Sites = opts.SitesPath
+	}
+	if opts.RoutesPath != "" {
+		cfg.Routes = opts.RoutesPath
+	}
+	if cfg.Sites == "" {
+		cfg.Sites = "addresses.csv"
+	}
+	if cfg.Routes == "" {
+		cfg.Routes = "routes.csv"
+	}
+
+	loc, err := time.LoadLocation(cfg.Timezone)
+	if err != nil {
+		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
+	}
+	cfg.Sites = resolveSiblingPath(cfg.Sites, opts.Input)
+	siteList, err := sites.Load(cfg.Sites, cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not load sites %s: %v; all sites will be CHECK\n", cfg.Sites, err)
+	}
+	if len(siteList) == 0 {
+		fmt.Fprintf(os.Stderr, "warning: loaded 0 sites from %s; all sites will be CHECK\n", cfg.Sites)
+	} else {
+		fmt.Fprintf(os.Stderr, "loaded sites: %d from %s\n", len(siteList), cfg.Sites)
+	}
+	cfg.Routes = resolveSiblingPath(cfg.Routes, opts.Input)
+	routeRules, err := routes.Load(cfg.Routes)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not load routes %s: %v; route rules will be skipped\n", cfg.Routes, err)
+	}
+	if len(routeRules) == 0 {
+		fmt.Fprintf(os.Stderr, "loaded routes: 0 from %s; observations will still be generated\n", cfg.Routes)
+	} else {
+		fmt.Fprintf(os.Stderr, "loaded routes: %d from %s\n", len(routeRules), cfg.Routes)
+	}
+
+	points, err := gps.ReadRawCSV(opts.Input, loc, cfg)
+	if err != nil {
+		return err
+	}
+	points = gps.Classify(points, cfg)
+	valid, jitter := gps.BuildTrips(points, cfg, siteList)
+	valid, routeObservations, routeAnomalies := routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
+
+	prefix := output.Prefix(opts.Input)
+	expanded := prefix + "_expanded.csv"
+	processed := prefix + "_processed.csv"
+	jitterPath := prefix + "_jitter.csv"
+	audit := prefix + "_audit.csv"
+	routeObservationsPath := prefix + "_route_observations.csv"
+	routeAnomaliesPath := prefix + "_route_anomalies.csv"
+
+	if err := output.WriteExpanded(expanded, points); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(processed, valid); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(jitterPath, jitter); err != nil {
+		return err
+	}
+	if err := output.WriteRouteObservations(routeObservationsPath, routeObservations); err != nil {
+		return err
+	}
+	if err := output.WriteRouteAnomalies(routeAnomaliesPath, routeAnomalies); err != nil {
+		return err
+	}
+	if err := output.WriteAudit(audit, opts.Input, cfg.Sites, cfg.Routes, opts.ConfigPath, cfg.Timezone, len(points), len(valid), len(jitter), len(siteList), len(routeRules)); err != nil {
+		return err
+	}
+
+	fmt.Printf("processed raw points: %d\n", len(points))
+	fmt.Printf("valid trips: %d\n", len(valid))
+	fmt.Printf("rejected jitter: %d\n", len(jitter))
+	fmt.Printf("wrote: %s\n", processed)
+	fmt.Printf("wrote: %s\n", expanded)
+	fmt.Printf("wrote: %s\n", jitterPath)
+	fmt.Printf("wrote: %s\n", routeObservationsPath)
+	fmt.Printf("wrote: %s\n", routeAnomaliesPath)
+	fmt.Printf("wrote: %s\n", audit)
+	return nil
+}
+
+func RunAddRoute(observationsPath string, observationIndex int, routesPath string) error {
+	if observationsPath == "" {
+		return fmt.Errorf("missing route observations CSV")
+	}
+	if observationIndex <= 0 {
+		return fmt.Errorf("route observation index must be greater than zero")
+	}
+	if routesPath == "" {
+		routesPath = resolveSiblingPath("routes.csv", observationsPath)
+	}
+	observations, err := routes.LoadObservations(observationsPath)
+	if err != nil {
+		return err
+	}
+	observation, ok := routes.FindObservation(observations, observationIndex)
+	if !ok {
+		return fmt.Errorf("index %d not found in %s", observationIndex, observationsPath)
+	}
+	route := routes.RouteFromObservation(observation)
+	if err := routes.AppendRoute(routesPath, route); err != nil {
+		return err
+	}
+	fmt.Printf("added route index %d to %s\n", observationIndex, routesPath)
+	fmt.Printf("route: %s (%s -> %s)\n", route.Name, route.FromSite, route.ToSite)
+	fmt.Printf("distance: %.2f-%.2f km; duration: %.2f-%.2f min\n", route.DistanceMinKM, route.DistanceMaxKM, route.DurationMinMin, route.DurationMaxMin)
+	return nil
+}
+
+func DefaultConfigPath() string {
+	if _, err := os.Stat("gogator.yaml"); err == nil {
+		return "gogator.yaml"
+	}
+	if _, err := os.Stat("gatorlog.yaml"); err == nil {
+		return "gatorlog.yaml"
+	}
+	return "gogator.yaml"
+}
+
+func resolveSiblingPath(path, inputPath string) string {
+	if path == "" || filepath.IsAbs(path) {
+		return path
+	}
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	dir := filepath.Dir(inputPath)
+	if dir != "." && dir != "" {
+		candidate := filepath.Join(dir, path)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
+	return path
+}
