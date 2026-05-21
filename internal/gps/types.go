@@ -3,6 +3,7 @@ package gps
 import "time"
 
 type RawPoint struct {
+	SourceFile        string
 	RawRow            int
 	RawDT             string
 	Time              time.Time
@@ -24,6 +25,7 @@ type RawPoint struct {
 
 type Trip struct {
 	Index                      int
+	Filename                   string
 	RawStartRow                int
 	RawEndRow                  int
 	RawPoints                  int
