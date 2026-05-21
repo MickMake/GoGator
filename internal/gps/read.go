@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -46,6 +47,7 @@ func ReadRawCSV(path string, loc *time.Location, cfg config.Config) ([]RawPoint,
 		rawRow = 1
 	}
 	firstPending := !hasHeader
+	sourceFile := filepath.Base(path)
 	for {
 		var rec []string
 		if firstPending {
@@ -80,22 +82,28 @@ func ReadRawCSV(path string, loc *time.Location, cfg config.Config) ([]RawPoint,
 		nums := NumericParams(params)
 		t, err := parseTime(dt, loc, cfg)
 		if err != nil {
-			return nil, fmt.Errorf("row %d dt %q: %w", rawRow, dt, err)
+			return nil, fmt.Errorf("%s row %d dt %q: %w", sourceFile, rawRow, dt, err)
 		}
-		out = append(out, RawPoint{RawRow: rawRow, RawDT: dt, Time: t, Lat: lat, Lng: lng, Altitude: alt, Angle: angle, SpeedKPH: speed, ParamsRaw: paramsRaw, Params: params, ParamNums: nums})
+		out = append(out, RawPoint{SourceFile: sourceFile, RawRow: rawRow, RawDT: dt, Time: t, Lat: lat, Lng: lng, Altitude: alt, Angle: angle, SpeedKPH: speed, ParamsRaw: paramsRaw, Params: params, ParamNums: nums})
 	}
-	for i := range out {
+	RecalculatePointDeltas(out)
+	return out, nil
+}
+
+func RecalculatePointDeltas(points []RawPoint) {
+	for i := range points {
+		points[i].DistanceFromPrevM = 0
+		points[i].ImpliedSpeedKPH = 0
 		if i == 0 {
 			continue
 		}
-		d := HaversineM(out[i-1].Lat, out[i-1].Lng, out[i].Lat, out[i].Lng)
-		out[i].DistanceFromPrevM = d
-		sec := out[i].Time.Sub(out[i-1].Time).Seconds()
+		d := HaversineM(points[i-1].Lat, points[i-1].Lng, points[i].Lat, points[i].Lng)
+		points[i].DistanceFromPrevM = d
+		sec := points[i].Time.Sub(points[i-1].Time).Seconds()
 		if sec > 0 {
-			out[i].ImpliedSpeedKPH = d / sec * 3.6
+			points[i].ImpliedSpeedKPH = d / sec * 3.6
 		}
 	}
-	return out, nil
 }
 
 func parseTime(s string, loc *time.Location, cfg config.Config) (time.Time, error) {
