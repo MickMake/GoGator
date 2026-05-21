@@ -107,6 +107,7 @@ func runProcessOne(input string, opts Options, cfg config.Config, loc *time.Loca
 	}
 	points = gps.Classify(points, cfg)
 	valid, jitter := gps.BuildTrips(points, cfg, siteList)
+	valid, jitter = gps.CollapseToImportantSites(valid, jitter, cfg, siteList)
 	valid, routeObservations, routeAnomalies := routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
 
 	prefix := output.Prefix(input)
