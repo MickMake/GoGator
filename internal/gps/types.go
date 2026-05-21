@@ -38,6 +38,7 @@ type Trip struct {
 	TopSpeedKPH                float64
 	AverageSpeedKPH            float64
 	SiteDurationHours          float64
+	ContinuityStatus           string
 	DepartureSite              string
 	DepartureAddress           string
 	DestinationSite            string
