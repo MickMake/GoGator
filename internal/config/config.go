@@ -25,6 +25,7 @@ type TripDetection struct {
 	IdealPDOPThreshold                 float64
 	SameSiteJitterRadiusM              float64
 	AccelerometerNonzeroSupportsMotion bool
+	IgnitionAnalysis                   string
 	StationaryTeleportGuardEnabled     bool
 	StationaryTeleportMinJumpM         float64
 	StationaryTeleportRequiresOdometer bool
@@ -69,6 +70,7 @@ func Default() Config {
 			IdealPDOPThreshold:                 2,
 			SameSiteJitterRadiusM:              100,
 			AccelerometerNonzeroSupportsMotion: false,
+			IgnitionAnalysis:                   "auto",
 			StationaryTeleportGuardEnabled:     true,
 			StationaryTeleportMinJumpM:         250,
 			StationaryTeleportRequiresOdometer: true,
@@ -169,6 +171,8 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Trip.SameSiteJitterRadiusM = f(val, cfg.Trip.SameSiteJitterRadiusM)
 		case "accelerometer_nonzero_supports_motion":
 			cfg.Trip.AccelerometerNonzeroSupportsMotion = b(val, cfg.Trip.AccelerometerNonzeroSupportsMotion)
+		case "ignition_analysis":
+			cfg.Trip.IgnitionAnalysis = ignitionMode(val, cfg.Trip.IgnitionAnalysis)
 		case "stationary_teleport_guard_enabled":
 			cfg.Trip.StationaryTeleportGuardEnabled = b(val, cfg.Trip.StationaryTeleportGuardEnabled)
 		case "stationary_teleport_min_jump_m":
@@ -243,4 +247,13 @@ func b(s string, d bool) bool {
 		return d
 	}
 	return v
+}
+func ignitionMode(s, d string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	switch s {
+	case "auto", "wired", "unwired":
+		return s
+	default:
+		return d
+	}
 }
