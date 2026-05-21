@@ -1,5 +1,13 @@
 # Changes
 
+## v0.23
+
+- Excluded route anomalies from `*_route_observations.csv` summaries so outlier trips no longer pollute learned route min/max/median values.
+- Kept route anomalies in `*_route_anomalies.csv` for review while preventing them from being promoted through `gogator add_route` by accident.
+- Split same-site jitter rows into a separate `*_jitter_same_site.csv` output.
+- `*_jitter.csv` now contains the remaining jitter rows that are more likely to need manual review.
+- Added `*_jitter_same_site.csv` to `.gitignore` with the other generated outputs.
+
 ## v0.22
 
 - Moved `Continuity Status` in processed trip output to immediately after `Site Duration`.
