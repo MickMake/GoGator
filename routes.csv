@@ -1,3 +1,5 @@
 Route Name,From Site,To Site,Expected Distance Min Km,Expected Distance Max Km,Expected Duration Min Min,Expected Duration Max Min,Confidence Boost,Auto Merge Gap Min,Notes
-Home Sweet Home to Asquith Public School,Home Sweet Home,Asquith Public School,8,16,10,40,Good,5,School route example
-Asquith Public School to Home Sweet Home,Asquith Public School,Home Sweet Home,8,16,10,45,Good,5,Return school route example
+Home Base to Customer Alpha,Home Base,Customer Alpha,5,20,10,45,Good,5,Example customer route
+Customer Alpha to Home Base,Customer Alpha,Home Base,5,20,10,45,Good,5,Example return route
+Home Base to Supplier Hardware,Home Base,Supplier Hardware,3,18,8,40,Good,5,Example supplier route
+Supplier Hardware to Customer Beta,Supplier Hardware,Customer Beta,3,18,8,40,Good,5,Example supplier-to-customer route
