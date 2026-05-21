@@ -19,6 +19,7 @@ type Site struct {
 	RadiusM               float64
 	MinDestinationMinutes float64
 	SiteType              string
+	Important             bool
 }
 
 func Load(path string, cfg config.Config) ([]Site, error) {
@@ -62,6 +63,10 @@ func Load(path string, cfg config.Config) ([]Site, error) {
 		}
 		return ""
 	}
+	hasImportant := false
+	if _, ok := idx[norm("Important")]; ok {
+		hasImportant = true
+	}
 	var out []Site
 	for _, row := range rows[headerIdx+1:] {
 		name := get(row, "Site", "Customer Name", "Site Name", "Name")
@@ -83,11 +88,15 @@ func Load(path string, cfg config.Config) ([]Site, error) {
 		if minDest < 0 {
 			minDest = cfg.Site.DefaultMinDestinationMinutes
 		}
-		siteType := get(row, "Site Type", "Type")
+		siteType := get(row, "Type", "Site Type")
+		important := true
+		if hasImportant {
+			important = parseImportant(get(row, "Important"))
+		}
 		if name == "" {
 			name = addr
 		}
-		out = append(out, Site{Name: name, Address: addr, Lat: lat, Lng: lng, RadiusM: radius, MinDestinationMinutes: minDest, SiteType: siteType})
+		out = append(out, Site{Name: name, Address: addr, Lat: lat, Lng: lng, RadiusM: radius, MinDestinationMinutes: minDest, SiteType: siteType, Important: important})
 	}
 	return out, nil
 }
@@ -105,6 +114,19 @@ func Match(all []Site, lat, lng float64, unknown string) (name, address string, 
 		return best.Name, best.Address, bestDist, true
 	}
 	return unknown, "", 0, false
+}
+
+func IsImportant(all []Site, name, unknown string) bool {
+	if name == "" || name == unknown {
+		return false
+	}
+	for _, s := range all {
+		if s.Name == name {
+			return s.Important
+		}
+	}
+	// Backwards-compatible fallback for sites not found in metadata.
+	return true
 }
 
 func detectDelimiter(data []byte) rune {
@@ -177,6 +199,10 @@ func parseGPS(s string) (float64, float64, bool) {
 	lat, e1 := strconv.ParseFloat(cleanNumber(parts[0]), 64)
 	lng, e2 := strconv.ParseFloat(cleanNumber(parts[1]), 64)
 	return lat, lng, e1 == nil && e2 == nil
+}
+func parseImportant(s string) bool {
+	s = strings.ToLower(strings.TrimSpace(s))
+	return s == "yes" || s == "y" || s == "true" || s == "1"
 }
 
 func haversineM(lat1, lon1, lat2, lon2 float64) float64 {
