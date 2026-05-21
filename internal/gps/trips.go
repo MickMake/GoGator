@@ -273,6 +273,7 @@ func makeTrip(index int, travelPts, depPts, destPts, depMatchPts, destMatchPts [
 	}
 	tr := Trip{
 		Index:            index,
+		Filename:         travelPts[0].SourceFile,
 		RawStartRow:      travelPts[0].RawRow,
 		RawEndRow:        travelPts[len(travelPts)-1].RawRow,
 		RawPoints:        len(travelPts),
