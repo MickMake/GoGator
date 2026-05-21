@@ -5,6 +5,8 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	"gogator/internal/config"
@@ -67,19 +69,12 @@ func RunProcess(opts Options) error {
 		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
 	}
 
-	for _, input := range opts.Inputs {
-		if len(opts.Inputs) > 1 {
-			fmt.Printf("processing: %s\n", input)
-		}
-		if err := runProcessOne(input, opts, cfg, loc); err != nil {
-			return err
-		}
-	}
-	return nil
+	return runProcessCombined(opts, cfg, loc)
 }
 
-func runProcessOne(input string, opts Options, cfg config.Config, loc *time.Location) error {
-	sitesPath := resolveSiblingPath(cfg.Sites, input)
+func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) error {
+	primaryInput := opts.Inputs[0]
+	sitesPath := resolveSiblingPath(cfg.Sites, primaryInput)
 	siteList, err := sites.Load(sitesPath, cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not load sites %s: %v; all sites will be CHECK\n", sitesPath, err)
@@ -90,7 +85,7 @@ func runProcessOne(input string, opts Options, cfg config.Config, loc *time.Loca
 		fmt.Fprintf(os.Stderr, "loaded sites: %d from %s\n", len(siteList), sitesPath)
 	}
 
-	routesPath := resolveSiblingPath(cfg.Routes, input)
+	routesPath := resolveSiblingPath(cfg.Routes, primaryInput)
 	routeRules, err := routes.Load(routesPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "warning: could not load routes %s: %v; route rules will be skipped\n", routesPath, err)
@@ -101,16 +96,37 @@ func runProcessOne(input string, opts Options, cfg config.Config, loc *time.Loca
 		fmt.Fprintf(os.Stderr, "loaded routes: %d from %s\n", len(routeRules), routesPath)
 	}
 
-	points, err := gps.ReadRawCSV(input, loc, cfg)
-	if err != nil {
-		return err
+	var points []gps.RawPoint
+	for _, input := range opts.Inputs {
+		if len(opts.Inputs) > 1 {
+			fmt.Printf("loading: %s\n", input)
+		}
+		pts, err := gps.ReadRawCSV(input, loc, cfg)
+		if err != nil {
+			return err
+		}
+		points = append(points, pts...)
 	}
+	sort.SliceStable(points, func(i, j int) bool {
+		if points[i].Time.Equal(points[j].Time) {
+			if points[i].SourceFile == points[j].SourceFile {
+				return points[i].RawRow < points[j].RawRow
+			}
+			return points[i].SourceFile < points[j].SourceFile
+		}
+		return points[i].Time.Before(points[j].Time)
+	})
+	gps.RecalculatePointDeltas(points)
+
 	points = gps.Classify(points, cfg)
 	valid, jitter := gps.BuildTrips(points, cfg, siteList)
 	valid, jitter = gps.CollapseToImportantSites(valid, jitter, cfg, siteList)
 	valid, routeObservations, routeAnomalies := routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
 
-	prefix := output.Prefix(input)
+	prefix := output.Prefix(primaryInput)
+	if len(opts.Inputs) > 1 {
+		prefix = filepath.Join(filepath.Dir(primaryInput), commonOutputName(opts.Inputs))
+	}
 	expanded := prefix + "_expanded.csv"
 	processed := prefix + "_processed.csv"
 	jitterPath := prefix + "_jitter.csv"
@@ -133,7 +149,7 @@ func runProcessOne(input string, opts Options, cfg config.Config, loc *time.Loca
 	if err := output.WriteRouteAnomalies(routeAnomaliesPath, routeAnomalies); err != nil {
 		return err
 	}
-	if err := output.WriteAudit(audit, input, sitesPath, routesPath, opts.ConfigPath, cfg.Timezone, len(points), len(valid), len(jitter), len(siteList), len(routeRules)); err != nil {
+	if err := output.WriteAudit(audit, strings.Join(opts.Inputs, ";"), sitesPath, routesPath, opts.ConfigPath, cfg.Timezone, len(points), len(valid), len(jitter), len(siteList), len(routeRules)); err != nil {
 		return err
 	}
 
@@ -147,6 +163,23 @@ func runProcessOne(input string, opts Options, cfg config.Config, loc *time.Loca
 	fmt.Printf("wrote: %s\n", routeAnomaliesPath)
 	fmt.Printf("wrote: %s\n", audit)
 	return nil
+}
+
+func commonOutputName(inputs []string) string {
+	if len(inputs) == 0 {
+		return "combined"
+	}
+	var bases []string
+	for _, input := range inputs {
+		base := filepath.Base(input)
+		ext := filepath.Ext(base)
+		bases = append(bases, strings.TrimSuffix(base, ext))
+	}
+	sort.Strings(bases)
+	if len(bases) == 1 {
+		return bases[0]
+	}
+	return bases[0] + "_to_" + bases[len(bases)-1]
 }
 
 func RunAddRoute(observationsPath string, observationIndex int, routesPath string) error {
