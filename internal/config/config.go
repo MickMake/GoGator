@@ -34,14 +34,20 @@ type TripDetection struct {
 }
 
 type SiteMatching struct {
-	DefaultRadiusM                float64
-	DefaultMinDestinationMinutes  float64
-	UnknownCheckMinDestinationMin float64
-	StationaryDwellRatioRequired  float64
-	InferSilentStopGaps           bool
-	SilentStopMinGapMinutes       float64
-	UnknownSiteLabel              string
-	HomeSiteName                  string
+	DefaultRadiusM                  float64
+	DefaultMinDestinationMinutes    float64
+	UnknownCheckMinDestinationMin   float64
+	StationaryDwellRatioRequired    float64
+	DwellWindowMinutes              float64
+	DwellRequiredInsideRatio        float64
+	DwellRequiredStationaryRatio    float64
+	DwellMaxSampleGapMinutes        float64
+	ContinuityRepairEnabled         bool
+	ContinuityMatchMaxMetres        float64
+	InferSilentStopGaps             bool
+	SilentStopMinGapMinutes         float64
+	UnknownSiteLabel                string
+	HomeSiteName                    string
 }
 
 type RawTime struct {
@@ -71,18 +77,24 @@ func Default() Config {
 			SameSiteGuardRadiusM:               750,
 		},
 		Site: SiteMatching{
-			DefaultRadiusM:                100,
-			DefaultMinDestinationMinutes:  5,
+			DefaultRadiusM:               100,
+			DefaultMinDestinationMinutes: 5,
 			UnknownCheckMinDestinationMin: 10,
-			StationaryDwellRatioRequired:  0.70,
-			InferSilentStopGaps:           true,
-			SilentStopMinGapMinutes:       5,
-			UnknownSiteLabel:              "CHECK",
-			HomeSiteName:                  "Home",
+			StationaryDwellRatioRequired: 0.70,
+			DwellWindowMinutes:           180,
+			DwellRequiredInsideRatio:     0.70,
+			DwellRequiredStationaryRatio: 0.70,
+			DwellMaxSampleGapMinutes:     90,
+			ContinuityRepairEnabled:      true,
+			ContinuityMatchMaxMetres:     75,
+			InferSilentStopGaps:          true,
+			SilentStopMinGapMinutes:      5,
+			UnknownSiteLabel:             "CHECK",
+			HomeSiteName:                 "Home",
 		},
 		RawTime: RawTime{
-			Source:          "gator_raw_utc_plus_one_day",
-			CorrectionHours: -24,
+			Source:          "gator_raw_utc",
+			CorrectionHours: 0,
 		},
 	}
 }
@@ -180,6 +192,18 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Site.UnknownCheckMinDestinationMin = f(val, cfg.Site.UnknownCheckMinDestinationMin)
 		case "stationary_dwell_ratio_required":
 			cfg.Site.StationaryDwellRatioRequired = f(val, cfg.Site.StationaryDwellRatioRequired)
+		case "dwell_window_minutes":
+			cfg.Site.DwellWindowMinutes = f(val, cfg.Site.DwellWindowMinutes)
+		case "dwell_required_inside_ratio":
+			cfg.Site.DwellRequiredInsideRatio = f(val, cfg.Site.DwellRequiredInsideRatio)
+		case "dwell_required_stationary_ratio":
+			cfg.Site.DwellRequiredStationaryRatio = f(val, cfg.Site.DwellRequiredStationaryRatio)
+		case "dwell_max_sample_gap_minutes":
+			cfg.Site.DwellMaxSampleGapMinutes = f(val, cfg.Site.DwellMaxSampleGapMinutes)
+		case "continuity_repair_enabled":
+			cfg.Site.ContinuityRepairEnabled = b(val, cfg.Site.ContinuityRepairEnabled)
+		case "continuity_match_max_metres", "continuity_match_max_meters":
+			cfg.Site.ContinuityMatchMaxMetres = f(val, cfg.Site.ContinuityMatchMaxMetres)
 		case "infer_silent_stop_gaps":
 			cfg.Site.InferSilentStopGaps = b(val, cfg.Site.InferSilentStopGaps)
 		case "silent_stop_min_gap_minutes":
