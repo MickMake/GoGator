@@ -25,3 +25,13 @@ go.work
 /dist/
 /build/
 
+# Private local data. Keep only sample data in the repo.
+addresses.local.csv
+routes.local.csv
+*_processed.csv
+*_expanded.csv
+*_jitter.csv
+*_route_observations.csv
+*_route_anomalies.csv
+*_audit.csv
+
