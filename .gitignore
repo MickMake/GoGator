@@ -31,6 +31,7 @@ routes.local.csv
 *_processed.csv
 *_expanded.csv
 *_jitter.csv
+*_jitter_same_site.csv
 *_route_observations.csv
 *_route_anomalies.csv
 *_audit.csv
