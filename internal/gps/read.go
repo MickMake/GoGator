@@ -114,12 +114,10 @@ func parseTime(s string, loc *time.Location, cfg config.Config) (time.Time, erro
 
 	layouts := []string{"2006-01-02 15:04:05", "02/01/2006 15:04:05", "2/01/2006 15:04:05", "02/01/2006 3:04:05 PM"}
 	for _, layout := range layouts {
-		// Gator raw exports can contain a naive wall-clock that is not the desired
-		// local vehicle time. Treat naive values as the raw export clock in UTC,
-		// then apply correction_hours and finally render in the target timezone.
-		// With correction_hours=-24 this matches the verified raw export behaviour:
-		// treat raw strings as UTC plus one day, then render in Sydney local time
-		// (net -13h during Sydney daylight time, net -14h after DST ends).
+		// Treat naive raw values as UTC tracker timestamps, then apply any
+		// explicit legacy/emergency correction and render in the target timezone.
+		// The default correction is 0; non-zero values are deliberately noisy
+		// because they can move trips onto the wrong local calendar day.
 		if t, err := time.ParseInLocation(layout, s, time.UTC); err == nil {
 			return t.Add(correction).In(loc), nil
 		}
