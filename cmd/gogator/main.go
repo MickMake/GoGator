@@ -60,15 +60,14 @@ func process(args []string) {
 				fmt.Fprintf(os.Stderr, "unknown option: %s\n", a)
 				os.Exit(2)
 			}
-			if opts.Input != "" {
-				fmt.Fprintf(os.Stderr, "unexpected argument: %s\n", a)
-				os.Exit(2)
+			opts.Inputs = append(opts.Inputs, a)
+			if opts.Input == "" {
+				opts.Input = a
 			}
-			opts.Input = a
 		}
 	}
-	if opts.Input == "" {
-		fmt.Fprintf(os.Stderr, "usage: %s process <raw-gps.csv> [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]\n", appName)
+	if len(opts.Inputs) == 0 {
+		fmt.Fprintf(os.Stderr, "usage: %s process <raw-gps.csv> [more-raw-gps.csv ...] [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]\n", appName)
 		os.Exit(2)
 	}
 	if err := app.RunProcess(opts); err != nil {
@@ -134,17 +133,17 @@ func usage() {
 	fmt.Printf(`GoGator processes Gator/Teltonika raw GPS CSV exports.
 
 Usage:
-  %[1]s process <raw-gps.csv> [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]
+  %[1]s process <raw-gps.csv> [more-raw-gps.csv ...] [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]
   %[1]s add_route <route_observations.csv> <index> [--routes routes.csv]
   %[1]s commands
 
 Defaults:
   config:   ./gogator.yaml, falling back to ./gatorlog.yaml for older folders
-  sites:    config sites value, otherwise ./addresses.csv or addresses.csv beside the input
-  routes:   config routes value, otherwise ./routes.csv or routes.csv beside the input
-  timezone: --timezone, then GOGATOR_TIMEZONE, then GATORLOG_TIMEZONE, then config timezone, otherwise Australia/Sydney
+  sites:    config sites value, otherwise ./addresses.csv or addresses.csv beside each input
+  routes:   config routes value, otherwise ./routes.csv or routes.csv beside each input
+  timezone: --timezone, then GOGATOR_TIMEZONE, then GATORLOG_TIMEZONE, then config, otherwise Australia/Sydney
 
-Outputs use the input filename prefix:
+Outputs use each input filename prefix:
   <input>_processed.csv
   <input>_expanded.csv
   <input>_jitter.csv
@@ -160,11 +159,12 @@ For intent and examples, run:
 func commands() {
 	fmt.Printf(`GoGator command guide
 
-Command: %[1]s process <raw-gps.csv>
-Intent:  Convert raw Gator/Teltonika GPS exports into deterministic spreadsheet-ready trip logs.
-Use when: You have a monthly or ad-hoc raw GPS export and want processed trips, expanded raw rows, jitter rejects, audit output, and route review files.
+Command: %[1]s process <raw-gps.csv> [more-raw-gps.csv ...]
+Intent:  Convert one or more raw Gator/Teltonika GPS exports into deterministic spreadsheet-ready trip logs.
+Use when: You have monthly or ad-hoc raw GPS exports and want processed trips, expanded raw rows, jitter rejects, audit output, and route review files.
 Examples:
   %[1]s process 2026-04_raw.csv
+  %[1]s process 2026-04_raw.csv 2026-05_raw.csv 2026-06_raw.csv
   %[1]s process 2026-04_raw.csv --timezone Australia/Sydney
   %[1]s process exports/2026-04_raw.csv --config gogator.yaml --sites addresses.csv --routes routes.csv
 Notes:
@@ -192,13 +192,14 @@ Use when: You or Codex need a reminder of what the CLI does without spelunking t
 
 func processHelp() {
 	fmt.Printf(`Usage:
-  %[1]s process <raw-gps.csv> [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]
+  %[1]s process <raw-gps.csv> [more-raw-gps.csv ...] [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]
 
 Intent:
-  Process raw GPS CSV as the source of truth and produce spreadsheet-friendly trip logs. Preserve enough raw tracker detail to debug suspicious timestamp, trip-detection, GPS, and accelerometer behaviour.
+  Process one or more raw GPS CSVs as the source of truth and produce spreadsheet-friendly trip logs. Preserve enough raw tracker detail to debug suspicious timestamp, trip-detection, GPS, and accelerometer behaviour.
 
 Examples:
   %[1]s process 2026-04_raw.csv
+  %[1]s process 2026-04_raw.csv 2026-05_raw.csv
   %[1]s process 2026-04_raw.csv --sites addresses.csv --routes routes.csv
 `, appName)
 }
