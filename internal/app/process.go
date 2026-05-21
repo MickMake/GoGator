@@ -122,6 +122,7 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 	valid, jitter := gps.BuildTrips(points, cfg, siteList)
 	valid, jitter = gps.CollapseToImportantSites(valid, jitter, cfg, siteList)
 	valid, routeObservations, routeAnomalies := routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
+	jitterReview, jitterSameSite := splitSameSiteJitter(jitter)
 
 	prefix := output.Prefix(primaryInput)
 	if len(opts.Inputs) > 1 {
@@ -130,6 +131,7 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 	expanded := prefix + "_expanded.csv"
 	processed := prefix + "_processed.csv"
 	jitterPath := prefix + "_jitter.csv"
+	jitterSameSitePath := prefix + "_jitter_same_site.csv"
 	audit := prefix + "_audit.csv"
 	routeObservationsPath := prefix + "_route_observations.csv"
 	routeAnomaliesPath := prefix + "_route_anomalies.csv"
@@ -140,7 +142,10 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 	if err := output.WriteTrips(processed, valid); err != nil {
 		return err
 	}
-	if err := output.WriteTrips(jitterPath, jitter); err != nil {
+	if err := output.WriteTrips(jitterPath, jitterReview); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(jitterSameSitePath, jitterSameSite); err != nil {
 		return err
 	}
 	if err := output.WriteRouteObservations(routeObservationsPath, routeObservations); err != nil {
@@ -156,13 +161,30 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 	fmt.Printf("processed raw points: %d\n", len(points))
 	fmt.Printf("valid trips: %d\n", len(valid))
 	fmt.Printf("rejected jitter: %d\n", len(jitter))
+	fmt.Printf("same-site jitter: %d\n", len(jitterSameSite))
 	fmt.Printf("wrote: %s\n", processed)
 	fmt.Printf("wrote: %s\n", expanded)
 	fmt.Printf("wrote: %s\n", jitterPath)
+	fmt.Printf("wrote: %s\n", jitterSameSitePath)
 	fmt.Printf("wrote: %s\n", routeObservationsPath)
 	fmt.Printf("wrote: %s\n", routeAnomaliesPath)
 	fmt.Printf("wrote: %s\n", audit)
 	return nil
+}
+
+func splitSameSiteJitter(jitter []gps.Trip) ([]gps.Trip, []gps.Trip) {
+	var review []gps.Trip
+	var sameSite []gps.Trip
+	for _, t := range jitter {
+		from := strings.TrimSpace(t.DepartureSite)
+		to := strings.TrimSpace(t.DestinationSite)
+		if from != "" && to != "" && strings.EqualFold(from, to) {
+			sameSite = append(sameSite, t)
+			continue
+		}
+		review = append(review, t)
+	}
+	return review, sameSite
 }
 
 func commonOutputName(inputs []string) string {
