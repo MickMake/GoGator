@@ -8,6 +8,7 @@ GoGator treats the raw GPS export as canonical. Gator's processed drive/stop exp
 
 ```bash
 gogator process <raw-gps.csv>
+gogator process <raw-gps.csv> <more-raw-gps.csv> ...
 ```
 
 Optional overrides:
@@ -30,20 +31,23 @@ gogator add_route --help
 - `sites` defaults to the config value, otherwise `addresses.csv`.
 - `routes` defaults to the config value, otherwise `routes.csv`.
 - timezone priority is `--timezone`, then `GOGATOR_TIMEZONE`, then legacy `GATORLOG_TIMEZONE`, then config, then `Australia/Sydney`.
-- if `addresses.csv` or `routes.csv` are not found in the current working directory, the app also checks beside the input raw GPS file.
+- if `addresses.csv` or `routes.csv` are not found in the current working directory, the app also checks beside each input raw GPS file.
 
 ## Commands
 
-### `gogator process <raw-gps.csv>`
+### `gogator process <raw-gps.csv> [more-raw-gps.csv ...]`
 
-Intent: convert raw Gator/Teltonika GPS rows into deterministic, spreadsheet-ready outputs.
+Intent: convert one or more raw Gator/Teltonika GPS files into deterministic, spreadsheet-ready outputs.
 
 Examples:
 
 ```bash
 gogator process 2026-04_raw.csv
+gogator process 2026-04_raw.csv 2026-05_raw.csv 2026-06_raw.csv
 gogator process exports/2026-04_raw.csv --config gogator.yaml --sites addresses.csv --routes routes.csv
 ```
+
+Each input file writes its own output set using that input filename as the prefix.
 
 ### `gogator add_route <route_observations.csv> <index>`
 
@@ -138,24 +142,23 @@ Given `2026-04.CSV`, outputs are:
 2026-04_audit.csv
 ```
 
+The processed CSV includes a `Continuity Status` column. It reports whether adjacent trip chaining is clean, repaired, or suspicious.
+
 The audit file includes loaded sites/routes and run settings.
 
 ## Time correction
 
-The raw GPS export can contain timestamps that are not the same clock as the vehicle's real local time. GoGator treats naive raw timestamps as UTC, applies `raw_time.correction_hours`, then renders the result in the configured timezone.
+GoGator treats naive raw timestamps as UTC, applies `raw_time.correction_hours`, then renders the result in the configured timezone.
 
 Default:
 
 ```yaml
 raw_time:
-  source: gator_raw_utc_plus_one_day
-  correction_hours: -24
+  source: gator_raw_utc
+  correction_hours: 0
 ```
 
-Verified April 2026 examples:
-
-- raw `2026-04-01 20:09:04` -> Sydney `2026-04-01 07:09:04`
-- raw `2026-04-02 04:31:53` -> Sydney `2026-04-01 15:31:53`
+Non-zero correction values are legacy/emergency overrides. GoGator warns when a correction is configured because it can move trips onto the wrong local calendar day.
 
 If a future Gator export changes its clock behaviour, adjust only `raw_time.correction_hours` in `gogator.yaml` and re-run.
 
@@ -194,6 +197,7 @@ GoGator includes safeguards for false stationary GPS clusters:
 
 - `stationary_teleport_guard_enabled`: filters stationary/idling points that jump far away from the last known site while odometer and motion signals say the vehicle did not move.
 - `same_site_micro_trip_*`: suppresses tiny local loops where the previous destination and current destination are the same known site, but a short CHECK segment appears in between.
+- `continuity_repair_enabled`: repairs adjacent trip labels when one side is `CHECK`, the other side is known, and both GPS coordinates represent the same physical place.
 
 Useful defaults in `gogator.yaml`:
 
@@ -219,6 +223,8 @@ Bunnings Castle Hill	14 Victoria Ave...	-33.72816963501526, 150.97700866421283	2
 
 `Min Destination Minutes` means minimum stationary dwell time inside the site radius. Time spent moving slowly through the radius does not count as destination dwell.
 
+Dwell matching uses a sliding evidence window so sparse tracker pings, such as hourly parked updates, can still prove a legitimate stop.
+
 Relevant defaults:
 
 ```yaml
@@ -227,6 +233,12 @@ site_matching:
   default_min_destination_minutes: 5
   unknown_check_min_destination_minutes: 10
   stationary_dwell_ratio_required: 0.70
+  dwell_window_minutes: 180
+  dwell_required_inside_ratio: 0.70
+  dwell_required_stationary_ratio: 0.70
+  dwell_max_sample_gap_minutes: 90
+  continuity_repair_enabled: true
+  continuity_match_max_metres: 75
   infer_silent_stop_gaps: true
   silent_stop_min_gap_minutes: 5
 ```
