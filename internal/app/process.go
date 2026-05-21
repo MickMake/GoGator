@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -15,6 +16,7 @@ import (
 
 type Options struct {
 	Input      string
+	Inputs     []string
 	ConfigPath string
 	SitesPath  string
 	RoutesPath string
@@ -22,7 +24,10 @@ type Options struct {
 }
 
 func RunProcess(opts Options) error {
-	if opts.Input == "" {
+	if len(opts.Inputs) == 0 && opts.Input != "" {
+		opts.Inputs = []string{opts.Input}
+	}
+	if len(opts.Inputs) == 0 {
 		return fmt.Errorf("missing input CSV")
 	}
 	if opts.ConfigPath == "" {
@@ -53,33 +58,50 @@ func RunProcess(opts Options) error {
 	if cfg.Routes == "" {
 		cfg.Routes = "routes.csv"
 	}
+	if math.Abs(cfg.RawTime.CorrectionHours) > 0.000001 {
+		fmt.Fprintf(os.Stderr, "warning: raw_time.correction_hours=%.2f shifts raw tracker timestamps before local date grouping; use only for known malformed exports\n", cfg.RawTime.CorrectionHours)
+	}
 
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
 	}
-	cfg.Sites = resolveSiblingPath(cfg.Sites, opts.Input)
-	siteList, err := sites.Load(cfg.Sites, cfg)
+
+	for _, input := range opts.Inputs {
+		if len(opts.Inputs) > 1 {
+			fmt.Printf("processing: %s\n", input)
+		}
+		if err := runProcessOne(input, opts, cfg, loc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func runProcessOne(input string, opts Options, cfg config.Config, loc *time.Location) error {
+	sitesPath := resolveSiblingPath(cfg.Sites, input)
+	siteList, err := sites.Load(sitesPath, cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: could not load sites %s: %v; all sites will be CHECK\n", cfg.Sites, err)
+		fmt.Fprintf(os.Stderr, "warning: could not load sites %s: %v; all sites will be CHECK\n", sitesPath, err)
 	}
 	if len(siteList) == 0 {
-		fmt.Fprintf(os.Stderr, "warning: loaded 0 sites from %s; all sites will be CHECK\n", cfg.Sites)
+		fmt.Fprintf(os.Stderr, "warning: loaded 0 sites from %s; all sites will be CHECK\n", sitesPath)
 	} else {
-		fmt.Fprintf(os.Stderr, "loaded sites: %d from %s\n", len(siteList), cfg.Sites)
-	}
-	cfg.Routes = resolveSiblingPath(cfg.Routes, opts.Input)
-	routeRules, err := routes.Load(cfg.Routes)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: could not load routes %s: %v; route rules will be skipped\n", cfg.Routes, err)
-	}
-	if len(routeRules) == 0 {
-		fmt.Fprintf(os.Stderr, "loaded routes: 0 from %s; observations will still be generated\n", cfg.Routes)
-	} else {
-		fmt.Fprintf(os.Stderr, "loaded routes: %d from %s\n", len(routeRules), cfg.Routes)
+		fmt.Fprintf(os.Stderr, "loaded sites: %d from %s\n", len(siteList), sitesPath)
 	}
 
-	points, err := gps.ReadRawCSV(opts.Input, loc, cfg)
+	routesPath := resolveSiblingPath(cfg.Routes, input)
+	routeRules, err := routes.Load(routesPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: could not load routes %s: %v; route rules will be skipped\n", routesPath, err)
+	}
+	if len(routeRules) == 0 {
+		fmt.Fprintf(os.Stderr, "loaded routes: 0 from %s; observations will still be generated\n", routesPath)
+	} else {
+		fmt.Fprintf(os.Stderr, "loaded routes: %d from %s\n", len(routeRules), routesPath)
+	}
+
+	points, err := gps.ReadRawCSV(input, loc, cfg)
 	if err != nil {
 		return err
 	}
@@ -87,7 +109,7 @@ func RunProcess(opts Options) error {
 	valid, jitter := gps.BuildTrips(points, cfg, siteList)
 	valid, routeObservations, routeAnomalies := routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
 
-	prefix := output.Prefix(opts.Input)
+	prefix := output.Prefix(input)
 	expanded := prefix + "_expanded.csv"
 	processed := prefix + "_processed.csv"
 	jitterPath := prefix + "_jitter.csv"
@@ -110,7 +132,7 @@ func RunProcess(opts Options) error {
 	if err := output.WriteRouteAnomalies(routeAnomaliesPath, routeAnomalies); err != nil {
 		return err
 	}
-	if err := output.WriteAudit(audit, opts.Input, cfg.Sites, cfg.Routes, opts.ConfigPath, cfg.Timezone, len(points), len(valid), len(jitter), len(siteList), len(routeRules)); err != nil {
+	if err := output.WriteAudit(audit, input, sitesPath, routesPath, opts.ConfigPath, cfg.Timezone, len(points), len(valid), len(jitter), len(siteList), len(routeRules)); err != nil {
 		return err
 	}
 
