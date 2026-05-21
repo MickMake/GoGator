@@ -39,9 +39,6 @@ func RunProcess(opts Options) error {
 	if err != nil {
 		return err
 	}
-	if envTZ := os.Getenv("GATORLOG_TIMEZONE"); envTZ != "" {
-		cfg.Timezone = envTZ
-	}
 	if envTZ := os.Getenv("GOGATOR_TIMEZONE"); envTZ != "" {
 		cfg.Timezone = envTZ
 	}
@@ -233,12 +230,6 @@ func RunAddRoute(observationsPath string, observationIndex int, routesPath strin
 }
 
 func DefaultConfigPath() string {
-	if _, err := os.Stat("gogator.yaml"); err == nil {
-		return "gogator.yaml"
-	}
-	if _, err := os.Stat("gatorlog.yaml"); err == nil {
-		return "gatorlog.yaml"
-	}
 	return "gogator.yaml"
 }
 
