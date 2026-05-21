@@ -2,7 +2,7 @@
 
 Deterministic Go CLI processor for Gator/Teltonika raw GPS CSV exports.
 
-GoGator treats the raw GPS export as canonical. Gator's processed drive/stop exports are useful as a comparison point, but they are not trusted as the source of truth because they have shown suspicious timestamp and trip-detection behaviour. This is how we avoid giving spreadsheet goblins a clipboard and authority.
+GoGator treats the raw GPS export as canonical. Gator processed drive/stop exports are useful as a comparison point, but they are not trusted as the source of truth because they have shown suspicious timestamp and trip-detection behaviour.
 
 ## Usage
 
@@ -20,24 +20,25 @@ gogator process <raw-gps.csv> --timezone Australia/Sydney --config gogator.yaml 
 Extended command help:
 
 ```bash
+gogator
 gogator commands
 gogator process --help
-gogator add_route --help
+gogator add route 3 from 2026-04_route_observations.csv
 ```
 
 ## Defaults
 
-- `config` defaults to `gogator.yaml`, falling back to `gatorlog.yaml` for older folders.
+- `config` defaults to `gogator.yaml`.
 - `sites` defaults to the config value, otherwise `addresses.csv`.
 - `routes` defaults to the config value, otherwise `routes.csv`.
-- timezone priority is `--timezone`, then `GOGATOR_TIMEZONE`, then legacy `GATORLOG_TIMEZONE`, then config, then `Australia/Sydney`.
+- timezone priority is `--timezone`, then `GOGATOR_TIMEZONE`, then config, then `Australia/Sydney`.
 - if `addresses.csv` or `routes.csv` are not found in the current working directory, the app also checks beside each input raw GPS file.
 
 ## Commands
 
 ### `gogator process <raw-gps.csv> [more-raw-gps.csv ...]`
 
-Intent: convert one or more raw Gator/Teltonika GPS files into deterministic, spreadsheet-ready outputs.
+Convert one or more raw Gator/Teltonika GPS files into deterministic, spreadsheet-ready outputs.
 
 Examples:
 
@@ -47,30 +48,17 @@ gogator process 2026-04_raw.csv 2026-05_raw.csv 2026-06_raw.csv
 gogator process exports/2026-04_raw.csv --config gogator.yaml --sites addresses.csv --routes routes.csv
 ```
 
-Each input file writes its own output set using that input filename as the prefix.
+### `gogator add route <index> from <route_observations.csv>`
 
-### `gogator add_route <route_observations.csv> <index>`
+Promote one observed route into `routes.csv` so future runs can recognise it as expected.
 
-Intent: promote one observed route into `routes.csv` so future runs can recognise it as expected.
-
-Examples:
+Example:
 
 ```bash
-gogator add_route 2026-04_route_observations.csv 3
-gogator add_route 2026-04_route_observations.csv 3 --routes my_routes.csv
+gogator add route 3 from 2026-04_route_observations.csv
 ```
 
 Routes are advisory only. They can confirm common routes and flag anomalies, but must not silently rewrite destinations.
-
-## Reference docs for future builds
-
-These files are included to give Codex and future maintainers enough context without depending on old chat prompts:
-
-- `AGENTS.md`: project rules and source-map for agent/Codex work.
-- `CODEX.md`: compact implementation context.
-- `COMMANDS.md`: command intent and examples.
-- `TRACKER_SIGNALS.md`: raw `params`, movement, quality, accelerometer, and crash/driving-style signal notes.
-- `DESIGN_NOTES.md`: design intent, why raw GPS is canonical, and evidence-preservation rules.
 
 ## Raw GPS input
 
@@ -82,28 +70,7 @@ dt,lat,lng,altitude,angle,speed,params
 
 Headed and headerless files are supported. Headerless files are assumed to use the field order above.
 
-Raw row numbering matches source file line numbers:
-
-- headed file: row 1 is the header and first data row is raw row 2
-- headerless file: first data row is raw row 1
-
-
-## Tracker params and accelerometer detail
-
-The raw `params` field is unordered key/value data and is expanded into stable columns in a fixed order. Important signals include:
-
-- `io24`: movement state; `0` is strong stationary evidence and `1` is strong movement evidence.
-- `io251`: idling status; `1` is idling/stationary evidence, but `0` is not proof of movement.
-- `pdop`: GPS geometry/quality hint. Useful, but not sufficient by itself.
-- `io14`: odometer in metres where available. Useful for detecting false stationary GPS teleports.
-- `io247`, `io253`, `io303`: crash/driving-style/event signals to preserve.
-- `g0`: raw X-axis acceleration, left/right vector.
-- `g1`: raw Y-axis acceleration, forward/back vector.
-- `g2`: raw Z-axis acceleration, up/down vector.
-
-See `TRACKER_SIGNALS.md` for the fuller reference.
-
-## Address/site CSV
+## Sites CSV
 
 Supported minimum columns:
 
@@ -117,8 +84,6 @@ Home Sweet Home,"28 New Line Rd, West Pennant Hills NSW 2125, Australia","-33.74
 The processor matches the nearest site within that row's radius and writes the actual `Site` value from `addresses.csv`, e.g. `Home Sweet Home`, not just `Home`.
 
 Important GPS output rule: matched sites keep the observed/noisy GPS coordinate from the tracker row or cluster. GoGator does **not** replace output GPS values with canonical GPS from `addresses.csv`.
-
-Google Sheets may export the Addresses tab as TSV while still naming it `addresses.csv`. GoGator detects the delimiter from the header row so address fields containing commas do not trick the parser into reading zero sites.
 
 Supported dwell aliases:
 
@@ -158,9 +123,7 @@ raw_time:
   correction_hours: 0
 ```
 
-Non-zero correction values are legacy/emergency overrides. GoGator warns when a correction is configured because it can move trips onto the wrong local calendar day.
-
-If a future Gator export changes its clock behaviour, adjust only `raw_time.correction_hours` in `gogator.yaml` and re-run.
+Non-zero correction values are emergency overrides. GoGator warns when a correction is configured because it can move trips onto the wrong local calendar day.
 
 ## Route rules
 
@@ -180,17 +143,6 @@ The processor writes:
 <input>_route_anomalies.csv     # unknown endpoints or trips outside approved route bands
 ```
 
-Processed trip rows include:
-
-```text
-Route Name
-Route Confidence
-Route Match Status
-Route Expected Distance Range
-Route Expected Duration Range
-Route Notes
-```
-
 ## GPS sanity filters
 
 GoGator includes safeguards for false stationary GPS clusters:
@@ -199,49 +151,14 @@ GoGator includes safeguards for false stationary GPS clusters:
 - `same_site_micro_trip_*`: suppresses tiny local loops where the previous destination and current destination are the same known site, but a short CHECK segment appears in between.
 - `continuity_repair_enabled`: repairs adjacent trip labels when one side is `CHECK`, the other side is known, and both GPS coordinates represent the same physical place.
 
-Useful defaults in `gogator.yaml`:
+## Reference docs
 
-```yaml
-trip_detection:
-  stationary_teleport_guard_enabled: true
-  stationary_teleport_min_jump_m: 250
-  stationary_teleport_requires_odometer: true
-  same_site_micro_trip_max_km: 1.5
-  same_site_micro_trip_max_minutes: 10
-  same_site_guard_radius_m: 750
-```
-
-## Stationary dwell destinations
-
-Known sites can include site-level destination dwell rules in `addresses.csv`/TSV:
-
-```text
-Site	Real Address	GPS	Range	Min Destination Minutes	Site Type
-Home Sweet Home	28 New Line Rd...	-33.74154166687418, 151.04808520098027	100	3	Home
-Bunnings Castle Hill	14 Victoria Ave...	-33.72816963501526, 150.97700866421283	200	8	Supplier
-```
-
-`Min Destination Minutes` means minimum stationary dwell time inside the site radius. Time spent moving slowly through the radius does not count as destination dwell.
-
-Dwell matching uses a sliding evidence window so sparse tracker pings, such as hourly parked updates, can still prove a legitimate stop.
-
-Relevant defaults:
-
-```yaml
-site_matching:
-  default_radius_m: 100
-  default_min_destination_minutes: 5
-  unknown_check_min_destination_minutes: 10
-  stationary_dwell_ratio_required: 0.70
-  dwell_window_minutes: 180
-  dwell_required_inside_ratio: 0.70
-  dwell_required_stationary_ratio: 0.70
-  dwell_max_sample_gap_minutes: 90
-  continuity_repair_enabled: true
-  continuity_match_max_metres: 75
-  infer_silent_stop_gaps: true
-  silent_stop_min_gap_minutes: 5
-```
+- `AGENTS.md`: project rules and source-map for agent/Codex work.
+- `CODEX.md`: compact implementation context.
+- `COMMANDS.md`: command intent and examples.
+- `TRACKER_SIGNALS.md`: raw params, movement, quality, accelerometer, and crash/driving-style signal notes.
+- `DESIGN_NOTES.md`: design intent, why raw GPS is canonical, and evidence-preservation rules.
+- `CHANGES.md`: append-only project history.
 
 ## Build and test
 
