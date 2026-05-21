@@ -31,14 +31,14 @@ func WriteExpanded(path string, points []gps.RawPoint) error {
 	defer f.Close()
 	w := csv.NewWriter(f)
 	defer w.Flush()
-	headers := []string{"Raw Row", "Raw Date/Time", "Normalised Date/Time", "Latitude", "Longitude", "Altitude", "Angle", "Speed kph", "Point Distance m", "Implied Speed kph", "Moving", "Stationary", "PDOP Quality", "Flags"}
+	headers := []string{"Filename", "Raw Row", "Raw Date/Time", "Normalised Date/Time", "Latitude", "Longitude", "Altitude", "Angle", "Speed kph", "Point Distance m", "Implied Speed kph", "Moving", "Stationary", "PDOP Quality", "Flags"}
 	headers = append(headers, gps.ParamOrder...)
 	headers = append(headers, "External Voltage V", "Backup Battery V", "Analog Input 1 V", "Accel Magnitude", "Params Raw")
 	if err := w.Write(headers); err != nil {
 		return err
 	}
 	for _, p := range points {
-		row := []string{itoa(p.RawRow), p.RawDT, formatTime(p.Time), ftoa(p.Lat, 6), ftoa(p.Lng, 6), ftoa(p.Altitude, 2), ftoa(p.Angle, 2), ftoa(p.SpeedKPH, 2), ftoa(p.DistanceFromPrevM, 2), ftoa(p.ImpliedSpeedKPH, 2), bools(p.Moving), bools(p.Stationary), p.PDOPQuality, strings.Join(p.Flags, ";")}
+		row := []string{p.SourceFile, itoa(p.RawRow), p.RawDT, formatTime(p.Time), ftoa(p.Lat, 6), ftoa(p.Lng, 6), ftoa(p.Altitude, 2), ftoa(p.Angle, 2), ftoa(p.SpeedKPH, 2), ftoa(p.DistanceFromPrevM, 2), ftoa(p.ImpliedSpeedKPH, 2), bools(p.Moving), bools(p.Stationary), p.PDOPQuality, strings.Join(p.Flags, ";")}
 		for _, k := range gps.ParamOrder {
 			row = append(row, p.Params[k])
 		}
@@ -77,7 +77,7 @@ func WriteTrips(path string, trips []gps.Trip) error {
 }
 
 func TripHeaders() []string {
-	h := []string{"Import Index", "Continuity Status", "Source", "Job Number", "Departure Date/Time", "Departure Site", "Departure GPS", "Departure Address", "Travelling Duration", "Travelling Distance", "Travelling Top Speed", "Travelling Average Speed", "Destination Date/Time", "Destination Site", "Destination GPS", "Destination Address", "Site Duration", "Route Name", "Route Confidence", "Route Match Status", "Route Expected Distance Range", "Route Expected Duration Range", "Route Notes", "Raw Start Row", "Raw End Row", "Raw Points", "Flags"}
+	h := []string{"Filename", "Import Index", "Job Number", "Departure Date/Time", "Departure Site", "Departure GPS", "Departure Address", "Travelling Duration", "Travelling Distance", "Travelling Top Speed", "Travelling Average Speed", "Destination Date/Time", "Destination Site", "Destination GPS", "Destination Address", "Site Duration", "Continuity Status", "Route Name", "Route Confidence", "Route Match Status", "Route Expected Distance Range", "Route Expected Duration Range", "Route Notes", "Raw Start Row", "Raw End Row", "Raw Points", "Flags"}
 	extra := []string{"Ignition On Samples", "Ignition Off Samples", "Ignition Values", "Ignition Start", "Ignition End", "PDOP Poor Samples", "PDOP Ideal Samples", "GPS Level Max", "g0 Max Abs", "g1 Max Abs", "g2 Max Abs", "Accel Magnitude Max", "Accel Magnitude Avg", "Accel Nonzero Samples", "Crash Detected Samples", "Behaviour Event Samples", "Behaviour Event Values", "Panic Trigger Samples", "Power Cut Samples io252", "Sleep Mode Values", "Network State Values io381", "Trip Status Values io254", "Odometer Raw Start io14", "Odometer Raw End io14", "SIM ICCID Raw io11"}
 	return append(h, extra...)
 }
@@ -89,9 +89,9 @@ func TripRow(t gps.Trip) []string {
 		status = "CONTINUITY_OK"
 	}
 	row := []string{
-		itoa(t.Index), status, "GoGator", "", formatTime(t.Start), t.DepartureSite, gpsText(t.DepartLat, t.DepartLng), t.DepartureAddress,
+		t.Filename, itoa(t.Index), "", formatTime(t.Start), t.DepartureSite, gpsText(t.DepartLat, t.DepartLng), t.DepartureAddress,
 		ftoa(t.DurationHours, 2), ftoa(t.DistanceKM, 2), ftoa(t.TopSpeedKPH, 2), ftoa(t.AverageSpeedKPH, 2),
-		formatTime(t.End), t.DestinationSite, gpsText(t.DestLat, t.DestLng), t.DestinationAddress, ftoa(t.SiteDurationHours, 2),
+		formatTime(t.End), t.DestinationSite, gpsText(t.DestLat, t.DestLng), t.DestinationAddress, ftoa(t.SiteDurationHours, 2), status,
 		t.RouteName, t.RouteConfidence, t.RouteMatchStatus, t.RouteExpectedDistanceRange, t.RouteExpectedDurationRange, t.RouteNotes,
 		itoa(t.RawStartRow), itoa(t.RawEndRow), itoa(t.RawPoints), strings.Join(t.Flags, ";"),
 	}
