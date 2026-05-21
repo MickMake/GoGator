@@ -1,5 +1,14 @@
 # Changes
 
+## v0.20
+
+- Added support for `Type` and `Important` columns in `addresses.csv`.
+- `Type` is arbitrary user text for classifying a site, such as `Customer`, `Vendor`, `Home`, or any other label.
+- `Important` accepts mixed-case yes/no style values; `yes`, `y`, `true`, and `1` are treated as important.
+- When the `Important` column is omitted, sites default to important for backwards compatibility.
+- Added an important-site ledger pass that treats unimportant sites and `CHECK` rows as pass-through noise, collapsing them into the next important site where possible.
+- Same-important-site loops created by unimportant fragments are moved to jitter instead of the main processed output.
+
 ## v0.19
 
 - Changed the default raw timestamp correction to `raw_time.correction_hours: 0` and `raw_time.source: gator_raw_utc`.
