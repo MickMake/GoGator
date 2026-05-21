@@ -348,7 +348,7 @@ func BuildObservations(trips []gps.Trip, unknown string) []Observation {
 	}
 	buckets := map[string]*bucket{}
 	for _, t := range trips {
-		if t.DepartureSite == "" || t.DestinationSite == "" || t.DepartureSite == unknown || t.DestinationSite == unknown {
+		if !isObservationCandidate(t, unknown) {
 			continue
 		}
 		key := t.DepartureSite + "\x00" + t.DestinationSite
@@ -401,20 +401,27 @@ func BuildObservations(trips []gps.Trip, unknown string) []Observation {
 func BuildAnomalies(trips []gps.Trip, unknown string) []Anomaly {
 	var out []Anomaly
 	for _, t := range trips {
-		status := strings.TrimSpace(t.RouteMatchStatus)
-		include := false
-		if t.DepartureSite == unknown || t.DestinationSite == unknown {
-			include = true
-		}
-		if status != "" && status != "Matched expected route" && status != "No route rule" {
-			include = true
-		}
-		if !include {
+		if !isRouteAnomaly(t, unknown) {
 			continue
 		}
 		out = append(out, Anomaly{TripIndex: t.Index, DepartureTime: t.Start, FromSite: t.DepartureSite, ToSite: t.DestinationSite, DistanceKM: t.DistanceKM, DurationMin: t.DurationHours * 60, RouteName: t.RouteName, Status: t.RouteMatchStatus, Notes: t.RouteNotes, RawStartRow: t.RawStartRow, RawEndRow: t.RawEndRow})
 	}
 	return out
+}
+
+func isObservationCandidate(t gps.Trip, unknown string) bool {
+	if t.DepartureSite == "" || t.DestinationSite == "" || t.DepartureSite == unknown || t.DestinationSite == unknown {
+		return false
+	}
+	return !isRouteAnomaly(t, unknown)
+}
+
+func isRouteAnomaly(t gps.Trip, unknown string) bool {
+	status := strings.TrimSpace(t.RouteMatchStatus)
+	if t.DepartureSite == unknown || t.DestinationSite == unknown {
+		return true
+	}
+	return status != "" && status != "Matched expected route" && status != "No route rule"
 }
 
 func detectDelimiter(data []byte) rune {
