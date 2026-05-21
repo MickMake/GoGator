@@ -1,5 +1,16 @@
 # Changes
 
+## v0.19
+
+- Changed the default raw timestamp correction to `raw_time.correction_hours: 0` and `raw_time.source: gator_raw_utc`.
+- Added a warning when `raw_time.correction_hours` is non-zero because timestamp shifts can move trips onto the wrong local calendar day.
+- Updated `gogator process` to accept more than one raw GPS CSV in a single command, writing the normal output set for each input file.
+- Added sliding-window dwell evidence for site matching, replacing brittle per-point dwell interval handling that could ignore exact hourly tracker pings.
+- Added site-matching config for dwell windows, inside-site ratio, stationary ratio, and maximum sample gap.
+- Added adjacent-trip continuity repair so `CHECK` can be repaired when the previous destination and next departure are the same physical place.
+- Added `Continuity Status` to processed trip output to distinguish normal rows, repaired continuity, unresolved checks, GPS gaps, and known-site conflicts.
+- Updated timestamp parsing comments to describe the default UTC tracker timestamp model and the legacy/emergency nature of non-zero correction values.
+
 ## v0.14
 
 - Added `TRACKER_SIGNALS.md` with raw params, movement/idling interpretation, GPS quality notes, odometer notes, crash/driving-style fields, and accelerometer axis meanings.
