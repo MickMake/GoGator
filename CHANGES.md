@@ -1,5 +1,13 @@
 # Changes
 
+## v0.21
+
+- Added `trip_detection.ignition_analysis` with supported values `auto`, `wired`, and `unwired`.
+- Default ignition analysis mode is `auto`.
+- In `auto`, GoGator trusts ignition only when raw data contains both ignition-on and ignition-off values in `io1`; otherwise it behaves as `unwired`.
+- In `wired`, `io1=0` is treated as strong stationary/parked evidence and suppresses movement classification for that point.
+- In `unwired`, ignition is ignored and GoGator continues using speed, `io24`, dwell, and GPS evidence.
+
 ## v0.20
 
 - Added support for `Type` and `Important` columns in `addresses.csv`.
