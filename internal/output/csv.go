@@ -77,21 +77,25 @@ func WriteTrips(path string, trips []gps.Trip) error {
 }
 
 func TripHeaders() []string {
-	h := []string{"Import Index", "Source", "Job Number", "Departure Date/Time", "Departure Site", "Departure GPS", "Departure Address", "Travelling Duration", "Travelling Distance", "Travelling Top Speed", "Travelling Average Speed", "Destination Date/Time", "Destination Site", "Destination GPS", "Destination Address", "Site Duration", "Route Name", "Route Confidence", "Route Match Status", "Route Expected Distance Range", "Route Expected Duration Range", "Route Notes", "Raw Start Row", "Raw End Row", "Raw Points", "Flags"}
+	h := []string{"Import Index", "Continuity Status", "Source", "Job Number", "Departure Date/Time", "Departure Site", "Departure GPS", "Departure Address", "Travelling Duration", "Travelling Distance", "Travelling Top Speed", "Travelling Average Speed", "Destination Date/Time", "Destination Site", "Destination GPS", "Destination Address", "Site Duration", "Route Name", "Route Confidence", "Route Match Status", "Route Expected Distance Range", "Route Expected Duration Range", "Route Notes", "Raw Start Row", "Raw End Row", "Raw Points", "Flags"}
 	extra := []string{"Ignition On Samples", "Ignition Off Samples", "Ignition Values", "Ignition Start", "Ignition End", "PDOP Poor Samples", "PDOP Ideal Samples", "GPS Level Max", "g0 Max Abs", "g1 Max Abs", "g2 Max Abs", "Accel Magnitude Max", "Accel Magnitude Avg", "Accel Nonzero Samples", "Crash Detected Samples", "Behaviour Event Samples", "Behaviour Event Values", "Panic Trigger Samples", "Power Cut Samples io252", "Sleep Mode Values", "Network State Values io381", "Trip Status Values io254", "Odometer Raw Start io14", "Odometer Raw End io14", "SIM ICCID Raw io11"}
 	return append(h, extra...)
 }
 
 func TripRow(t gps.Trip) []string {
 	sum := gps.TripParamSummary(t)
+	status := t.ContinuityStatus
+	if status == "" {
+		status = "CONTINUITY_OK"
+	}
 	row := []string{
-		itoa(t.Index), "GoGator", "", formatTime(t.Start), t.DepartureSite, gpsText(t.DepartLat, t.DepartLng), t.DepartureAddress,
+		itoa(t.Index), status, "GoGator", "", formatTime(t.Start), t.DepartureSite, gpsText(t.DepartLat, t.DepartLng), t.DepartureAddress,
 		ftoa(t.DurationHours, 2), ftoa(t.DistanceKM, 2), ftoa(t.TopSpeedKPH, 2), ftoa(t.AverageSpeedKPH, 2),
 		formatTime(t.End), t.DestinationSite, gpsText(t.DestLat, t.DestLng), t.DestinationAddress, ftoa(t.SiteDurationHours, 2),
 		t.RouteName, t.RouteConfidence, t.RouteMatchStatus, t.RouteExpectedDistanceRange, t.RouteExpectedDurationRange, t.RouteNotes,
 		itoa(t.RawStartRow), itoa(t.RawEndRow), itoa(t.RawPoints), strings.Join(t.Flags, ";"),
 	}
-	for _, k := range TripHeaders()[26:] {
+	for _, k := range TripHeaders()[27:] {
 		row = append(row, sum[k])
 	}
 	return row
