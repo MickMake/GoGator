@@ -227,6 +227,7 @@ Global notes:
   Default database:        gogator.sqlite
   Default config:          gogator.yaml, falling back to gatorlog.yaml if present
   Default timezone:        Australia/Sydney
+  Supported date formats:  YYYY, YYYY-MM, or YYYY-MM-DD
   Current process command: file-based CSV processing remains supported
   Future DB commands:      recognised now, implemented over staged releases
 
@@ -274,6 +275,7 @@ Examples:
   %[1]s import sites from sites.tsv
   %[1]s import routes from routes.tsv
   %[1]s export trips during 2026 as trips.tsv
+  %[1]s export gps during 2026-04 as gps.tsv
   %[1]s export paths from "Home Sweet Home" to "Asquith Public School" during 2026 as school-run-paths.tsv
 
 Configuration:
@@ -285,6 +287,9 @@ Configuration:
 
 func commands() {
 	fmt.Printf(`GoGator command guide
+
+Supported date formats:
+  YYYY, YYYY-MM, or YYYY-MM-DD
 
 Command families:
 
