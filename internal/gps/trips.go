@@ -98,12 +98,19 @@ func BuildTrips(points []RawPoint, cfg config.Config, siteList []sites.Site) (va
 	}
 
 	valid, jitter = suppressSameSiteMicroTrips(valid, jitter, cfg)
+	valid = repairContinuity(valid, cfg)
 
 	for i := range valid {
 		valid[i].Index = i + 1
+		if valid[i].ContinuityStatus == "" {
+			valid[i].ContinuityStatus = "CONTINUITY_OK"
+		}
 	}
 	for i := range jitter {
 		jitter[i].Index = i + 1
+		if jitter[i].ContinuityStatus == "" {
+			jitter[i].ContinuityStatus = "CONTINUITY_OK"
+		}
 	}
 	for i := range valid {
 		if i+1 < len(valid) {
@@ -216,18 +223,63 @@ func isSameSiteMicroTrip(prev, cur Trip, cfg config.Config) bool {
 	return false
 }
 
+func repairContinuity(valid []Trip, cfg config.Config) []Trip {
+	if !cfg.Site.ContinuityRepairEnabled || len(valid) < 2 {
+		return valid
+	}
+	maxM := cfg.Site.ContinuityMatchMaxMetres
+	if maxM <= 0 {
+		maxM = 75
+	}
+	unknown := cfg.Site.UnknownSiteLabel
+	for i := 0; i+1 < len(valid); i++ {
+		prev := &valid[i]
+		cur := &valid[i+1]
+		d := HaversineM(prev.DestLat, prev.DestLng, cur.DepartLat, cur.DepartLng)
+		if d > maxM {
+			if prev.DestinationSite != cur.DepartureSite {
+				cur.ContinuityStatus = "OOPS_GPS_GAP"
+				cur.Flags = append(cur.Flags, "continuity_gps_gap")
+			}
+			continue
+		}
+		prevKnown := prev.DestinationSite != "" && prev.DestinationSite != unknown
+		curKnown := cur.DepartureSite != "" && cur.DepartureSite != unknown
+		switch {
+		case !prevKnown && curKnown:
+			prev.DestinationSite = cur.DepartureSite
+			prev.DestinationAddress = cur.DepartureAddress
+			prev.ContinuityStatus = "CONTINUITY_REPAIRED"
+			prev.Flags = append(prev.Flags, "continuity_destination_repaired")
+		case prevKnown && !curKnown:
+			cur.DepartureSite = prev.DestinationSite
+			cur.DepartureAddress = prev.DestinationAddress
+			cur.ContinuityStatus = "CONTINUITY_REPAIRED"
+			cur.Flags = append(cur.Flags, "continuity_departure_repaired")
+		case prevKnown && curKnown && prev.DestinationSite != cur.DepartureSite:
+			cur.ContinuityStatus = "OOPS_KNOWN_TO_KNOWN_CONFLICT"
+			cur.Flags = append(cur.Flags, "continuity_known_site_conflict")
+		case !prevKnown && !curKnown:
+			cur.ContinuityStatus = "OOPS_UNRESOLVED_CHECK"
+			cur.Flags = append(cur.Flags, "continuity_unresolved_check")
+		}
+	}
+	return valid
+}
+
 func makeTrip(index int, travelPts, depPts, destPts, depMatchPts, destMatchPts []RawPoint, cfg config.Config, siteList []sites.Site) Trip {
 	if len(travelPts) == 0 {
 		return Trip{}
 	}
 	tr := Trip{
-		Index:       index,
-		RawStartRow: travelPts[0].RawRow,
-		RawEndRow:   travelPts[len(travelPts)-1].RawRow,
-		RawPoints:   len(travelPts),
-		Start:       travelPts[0].Time,
-		End:         travelPts[len(travelPts)-1].Time,
-		Points:      travelPts,
+		Index:            index,
+		RawStartRow:      travelPts[0].RawRow,
+		RawEndRow:        travelPts[len(travelPts)-1].RawRow,
+		RawPoints:        len(travelPts),
+		Start:            travelPts[0].Time,
+		End:              travelPts[len(travelPts)-1].Time,
+		ContinuityStatus: "CONTINUITY_OK",
+		Points:           travelPts,
 	}
 	if len(destPts) > 0 {
 		tr.RawEndRow = destPts[0].RawRow
@@ -339,32 +391,71 @@ func matchSiteWithDwell(siteList []sites.Site, pts []RawPoint, lat, lng float64,
 	if len(pts) == 0 || minMinutes <= 0 {
 		return best.Name, best.Address, bestDist, true
 	}
-	stationarySecs, insideSecs := stationaryDwellSeconds(best, pts, cfg)
-	ratio := 0.0
-	if insideSecs > 0 {
-		ratio = stationarySecs / insideSecs
-	}
-	if stationarySecs >= minMinutes*60 && ratio >= cfg.Site.StationaryDwellRatioRequired {
+	evidence := slidingDwellEvidence(best, pts, cfg)
+	if evidence.insideSecs >= minMinutes*60 && evidence.insideRatio >= cfg.Site.DwellRequiredInsideRatio && evidence.stationaryRatio >= cfg.Site.DwellRequiredStationaryRatio {
 		return best.Name, best.Address, bestDist, true
 	}
 	return cfg.Site.UnknownSiteLabel, "", bestDist, false
 }
 
-func stationaryDwellSeconds(site sites.Site, pts []RawPoint, cfg config.Config) (stationarySecs, insideSecs float64) {
-	for i, p := range pts {
-		if HaversineM(p.Lat, p.Lng, site.Lat, site.Lng) > site.RadiusM {
-			continue
+type dwellEvidence struct {
+	insideSecs      float64
+	totalSecs       float64
+	stationarySecs  float64
+	insideRatio     float64
+	stationaryRatio float64
+}
+
+func slidingDwellEvidence(site sites.Site, pts []RawPoint, cfg config.Config) dwellEvidence {
+	if len(pts) == 0 {
+		return dwellEvidence{}
+	}
+	windowSecs := cfg.Site.DwellWindowMinutes * 60
+	if windowSecs <= 0 {
+		windowSecs = 180 * 60
+	}
+	maxGapSecs := cfg.Site.DwellMaxSampleGapMinutes * 60
+	if maxGapSecs <= 0 {
+		maxGapSecs = 90 * 60
+	}
+	best := dwellEvidence{}
+	for start := 0; start < len(pts); start++ {
+		cur := dwellEvidence{}
+		for i := start; i+1 < len(pts); i++ {
+			if pts[i+1].Time.Sub(pts[start].Time).Seconds() > windowSecs {
+				break
+			}
+			secs := pts[i+1].Time.Sub(pts[i].Time).Seconds()
+			if secs <= 0 {
+				continue
+			}
+			if secs > maxGapSecs {
+				break
+			}
+			cur.totalSecs += secs
+			inside := HaversineM(pts[i].Lat, pts[i].Lng, site.Lat, site.Lng) <= site.RadiusM
+			if inside {
+				cur.insideSecs += secs
+				if isStationaryDwellPoint(pts[i], cfg) || isSilentStopGapAt(site, pts, i, secs, cfg) {
+					cur.stationarySecs += secs
+				}
+			}
 		}
-		secs := pointIntervalSeconds(pts, i)
-		if secs <= 0 {
-			continue
-		}
-		insideSecs += secs
-		if isStationaryDwellPoint(p, cfg) || isSilentStopGapAt(site, pts, i, secs, cfg) {
-			stationarySecs += secs
+		cur.finish()
+		if cur.insideSecs > best.insideSecs || (cur.insideSecs == best.insideSecs && cur.stationaryRatio > best.stationaryRatio) {
+			best = cur
 		}
 	}
-	return stationarySecs, insideSecs
+	return best
+}
+
+func (d *dwellEvidence) finish() {
+	if d.totalSecs > 0 {
+		d.insideRatio = d.insideSecs / d.totalSecs
+	}
+	if d.insideSecs > 0 {
+		d.stationaryRatio = d.stationarySecs / d.insideSecs
+	}
 }
 
 func isSilentStopGapAt(site sites.Site, pts []RawPoint, i int, secs float64, cfg config.Config) bool {
@@ -379,25 +470,6 @@ func isSilentStopGapAt(site sites.Site, pts []RawPoint, i int, secs float64, cfg
 		return false
 	}
 	return isStationaryDwellPoint(next, cfg)
-}
-
-func pointIntervalSeconds(pts []RawPoint, i int) float64 {
-	if len(pts) == 0 || i < 0 || i >= len(pts) {
-		return 0
-	}
-	if i+1 < len(pts) {
-		secs := pts[i+1].Time.Sub(pts[i].Time).Seconds()
-		if secs > 0 && secs < 3600 {
-			return secs
-		}
-	}
-	if i > 0 {
-		secs := pts[i].Time.Sub(pts[i-1].Time).Seconds()
-		if secs > 0 && secs < 3600 {
-			return secs
-		}
-	}
-	return 0
 }
 
 func isStationaryDwellPoint(p RawPoint, cfg config.Config) bool {
