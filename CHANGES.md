@@ -1,5 +1,14 @@
 # Changes
 
+## v0.22
+
+- Moved `Continuity Status` in processed trip output to immediately after `Site Duration`.
+- Replaced the processed output `Source` column with `Filename` as column 1.
+- `Filename` is now populated from the raw GPS file that contributed the trip.
+- Expanded output also includes a `Filename` column for each raw point.
+- When multiple raw GPS files are supplied to `gogator process`, GoGator now reads all files, normalises timestamps, sorts all points by time, recalculates point deltas, and processes them as one combined timeline.
+- Multi-file output is written once using a combined filename range such as `<first>_to_<last>_processed.csv`, rather than one output set per input file.
+
 ## v0.21
 
 - Added `trip_detection.ignition_analysis` with supported values `auto`, `wired`, and `unwired`.
