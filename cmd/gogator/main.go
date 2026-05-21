@@ -225,7 +225,7 @@ Version: %[2]s
 
 Global notes:
   Default database:        gogator.sqlite
-  Default config:          gogator.yaml, falling back to gatorlog.yaml if present
+  Default config:          gogator.yaml
   Default timezone:        Australia/Sydney
   Supported date formats:  YYYY, YYYY-MM, or YYYY-MM-DD
   Current process command: file-based CSV processing remains supported
@@ -280,7 +280,6 @@ Examples:
 
 Configuration:
   GOGATOR_TIMEZONE             Optional timezone override.
-  GATORLOG_TIMEZONE            Legacy timezone override fallback.
 
 `, appName, version)
 }
