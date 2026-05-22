@@ -8,18 +8,24 @@ This file tracks agreed GoGator work that is not implemented yet. It is intentio
 
 `raw` means source/backup/round-trip tracker data.
 
-Planned commands:
+Implemented command:
 
 ```bash
 gogator import raw from tracker.csv
+```
+
+Planned commands/behaviour:
+
+```bash
 gogator import raw from tracker.tsv
 gogator export raw as tracker.csv
 ```
 
 Rules:
 
-- `import raw` replaces the current `import gps` meaning.
-- `import raw` must ingest original Gator/Teltonika tracker exports.
+- `import raw` replaces the old planned/current `import gps` meaning.
+- `import gps` is not a command; use `import raw`.
+- `import raw` ingests original Gator/Teltonika tracker CSV exports.
 - Gator tracker exports are plain CSV.
 - `import raw` should also accept TSV input.
 - `export raw` must export a round-trippable raw file.
@@ -97,6 +103,7 @@ Not implemented yet:
 
 ```bash
 gogator process gps ...
+gogator import raw from tracker.tsv
 gogator export raw ...
 gogator export trips ...
 gogator export jitter ...
