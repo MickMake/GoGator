@@ -374,8 +374,29 @@ func dbCmd(args []string) error {
 		fmt.Printf("trips: %d\n", counts.Trips)
 		fmt.Printf("issues: %d\n", counts.Issues)
 		return nil
-	case "backup", "vacuum":
-		return fmt.Errorf("not implemented yet: db %s", args[0])
+	case "backup":
+		path := "gogator-backup.sqlite"
+		if len(args) > 1 {
+			p, err := parseOptionalDBFile("backup", args[1:])
+			if err != nil {
+				return err
+			}
+			path = p
+		}
+		if err := store.Backup(store.DefaultPath, path); err != nil {
+			return fmt.Errorf("db backup: %w", err)
+		}
+		fmt.Printf("backed up database to %s\n", path)
+		return nil
+	case "vacuum":
+		if len(args) > 1 {
+			return fmt.Errorf("%w: usage: gogator db vacuum", errUsage)
+		}
+		if err := store.Vacuum(store.DefaultPath); err != nil {
+			return fmt.Errorf("db vacuum: %w", err)
+		}
+		fmt.Printf("vacuumed database: %s\n", store.DefaultPath)
+		return nil
 	default:
 		return fmt.Errorf("%w: unknown db command: %s", errUsage, args[0])
 	}
@@ -426,8 +447,8 @@ Commands:
 
   db init                                      Initialise gogator.sqlite schema.
   db status                                    Show database status and row counts.
-  db backup ...                                Planned: backup database.
-  db vacuum                                    Planned: compact database.
+  db backup [[as] file]                       Back up database to a new SQLite file.
+  db vacuum                                    Compact database.
 
   import raw [from] <file...>                  Import raw tracker CSV/TSV rows into the database.
   import sites [from] <file>                   Import site definitions.
@@ -462,6 +483,8 @@ Examples:
   %[1]s process raw.csv
   %[1]s process raw.csv --timezone Australia/Sydney
   %[1]s db init
+  %[1]s db backup as gogator-backup.sqlite
+  %[1]s db vacuum
   %[1]s import raw from raw.csv
   %[1]s export raw as raw.csv
   %[1]s export gps as gps.tsv
@@ -569,4 +592,14 @@ func parseOptionalAsFile(target string, args []string) (string, error) {
 		return args[1], nil
 	}
 	return "", fmt.Errorf("%w: usage: gogator export %s [as] <file>", errUsage, target)
+}
+
+func parseOptionalDBFile(target string, args []string) (string, error) {
+	if len(args) == 1 {
+		return args[0], nil
+	}
+	if len(args) == 2 && args[0] == "as" {
+		return args[1], nil
+	}
+	return "", fmt.Errorf("%w: usage: gogator db %s [as] <file>", errUsage, target)
 }
