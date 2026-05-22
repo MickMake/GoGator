@@ -45,7 +45,7 @@ func ImportGPS(paths []string, loc *time.Location, cfg config.Config) (GPSImport
 		result.Files++
 		result.RawRows += len(points)
 		for _, point := range points {
-			pointID, inserted, err := upsertGPSPointTx(tx, point)
+			pointID, inserted, err := insertGPSPointTx(tx, point)
 			if err != nil {
 				return GPSImportResult{}, err
 			}
@@ -59,6 +59,11 @@ func ImportGPS(paths []string, loc *time.Location, cfg config.Config) (GPSImport
 			if sourceInserted {
 				result.SourceRows++
 			}
+			if sourceInserted && !inserted {
+				if err := markGPSPointSeenTx(tx, pointID, point); err != nil {
+					return GPSImportResult{}, err
+				}
+			}
 		}
 	}
 	if err := tx.Commit(); err != nil {
@@ -67,7 +72,7 @@ func ImportGPS(paths []string, loc *time.Location, cfg config.Config) (GPSImport
 	return result, nil
 }
 
-func upsertGPSPointTx(tx *sql.Tx, point gps.RawPoint) (int64, bool, error) {
+func insertGPSPointTx(tx *sql.Tx, point gps.RawPoint) (int64, bool, error) {
 	hash, paramsJSON, err := gpsPointHash(point)
 	if err != nil {
 		return 0, false, err
@@ -95,17 +100,17 @@ VALUES(?,?,?,?,?,1,?,?,?,?,?,?,?,?,?)`,
 	}
 	insertedRows, _ := res.RowsAffected()
 	inserted := insertedRows > 0
-	if !inserted {
-		if _, err := tx.Exec(`UPDATE gps_points SET last_source_file=?,last_raw_row=?,seen_count=seen_count+1 WHERE point_hash=?`, point.SourceFile, point.RawRow, hash); err != nil {
-			return 0, false, err
-		}
-	}
 
 	var id int64
 	if err := tx.QueryRow(`SELECT id FROM gps_points WHERE point_hash=?`, hash).Scan(&id); err != nil {
 		return 0, false, err
 	}
 	return id, inserted, nil
+}
+
+func markGPSPointSeenTx(tx *sql.Tx, gpsPointID int64, point gps.RawPoint) error {
+	_, err := tx.Exec(`UPDATE gps_points SET last_source_file=?,last_raw_row=?,seen_count=seen_count+1 WHERE id=?`, point.SourceFile, point.RawRow, gpsPointID)
+	return err
 }
 
 func insertGPSPointSourceTx(tx *sql.Tx, gpsPointID int64, point gps.RawPoint) (bool, error) {
