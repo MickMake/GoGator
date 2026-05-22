@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gogator/internal/app"
+	"gogator/internal/store"
 )
 
 const appName = "gogator"
@@ -184,7 +185,34 @@ func dbCmd(args []string) error {
 		return fmt.Errorf("%w: usage: gogator db <init|status|backup|vacuum>", errUsage)
 	}
 	switch args[0] {
-	case "init", "status", "backup", "vacuum":
+	case "init":
+		if err := store.Init(store.DefaultPath); err != nil {
+			return fmt.Errorf("db init: %w", err)
+		}
+		fmt.Printf("initialised database: %s\n", store.DefaultPath)
+		return nil
+	case "status":
+		exists, err := store.Exists(store.DefaultPath)
+		if err != nil {
+			return fmt.Errorf("db status: %w", err)
+		}
+		if !exists {
+			return fmt.Errorf("database not found: %s (run: %s db init)", store.DefaultPath, appName)
+		}
+		counts, version, err := store.Status(store.DefaultPath)
+		if err != nil {
+			return fmt.Errorf("db status: %w", err)
+		}
+		fmt.Printf("database: %s\n", store.DefaultPath)
+		fmt.Printf("sqlite: %s\n", version)
+		fmt.Printf("gps_points: %d\n", counts.GPSPoints)
+		fmt.Printf("sites: %d\n", counts.Sites)
+		fmt.Printf("routes: %d\n", counts.Routes)
+		fmt.Printf("processing_runs: %d\n", counts.ProcessingRuns)
+		fmt.Printf("trips: %d\n", counts.Trips)
+		fmt.Printf("issues: %d\n", counts.Issues)
+		return nil
+	case "backup", "vacuum":
 		return fmt.Errorf("not implemented yet: db %s", args[0])
 	default:
 		return fmt.Errorf("%w: unknown db command: %s", errUsage, args[0])
@@ -235,8 +263,8 @@ Commands:
   process <gps.csv...>                         Process raw GPS CSV files using current file-based workflow.
   process gps ...                              Planned DB-backed GPS processing.
 
-  db init                                      Planned: initialise gogator.sqlite.
-  db status                                    Planned: show database status.
+  db init                                      Initialise gogator.sqlite schema.
+  db status                                    Show database status and row counts.
   db backup ...                                Planned: backup database.
   db vacuum                                    Planned: compact database.
 
