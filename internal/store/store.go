@@ -48,7 +48,6 @@ func Init(path string) error {
 		return err
 	}
 	defer db.Close()
-
 	for _, stmt := range schemaStatements {
 		if _, err := db.Exec(stmt); err != nil {
 			return err
@@ -71,7 +70,6 @@ func Status(path string) (Counts, string, error) {
 		return Counts{}, "", err
 	}
 	defer db.Close()
-
 	var c Counts
 	if err := queryCount(db, "gps_points", &c.GPSPoints); err != nil {
 		return Counts{}, "", err
@@ -91,7 +89,6 @@ func Status(path string) (Counts, string, error) {
 	if err := queryCount(db, "issues", &c.Issues); err != nil {
 		return Counts{}, "", err
 	}
-
 	version, err := SQLiteVersion(db)
 	if err != nil {
 		return Counts{}, "", err
@@ -112,24 +109,37 @@ var schemaStatements = []string{
 		id integer primary key,
 		point_hash text not null unique,
 		raw_dt text not null,
-		time text not null,
+		normalised_time text not null,
 		lat real not null,
 		lng real not null,
 		altitude real,
 		angle real,
-		speed real,
+		speed_kph real,
 		params_raw text,
 		params_json text,
+		first_source_file text,
+		first_raw_row integer,
+		last_source_file text,
+		last_raw_row integer,
+		seen_count integer not null default 1,
 		imported_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+	)`,
+	`create table if not exists gps_point_sources (
+		gps_point_id integer not null,
+		source_file text not null,
+		raw_row integer not null,
+		created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+		primary key (gps_point_id, source_file, raw_row),
+		foreign key (gps_point_id) references gps_points(id) on delete cascade
 	)`,
 	`create table if not exists sites (
 		id integer primary key,
 		name text not null unique,
 		address text,
-		lat real,
-		lng real,
-		range_m integer,
-		min_destination_minutes integer,
+		lat real not null,
+		lng real not null,
+		range_m real,
+		min_destination_minutes real,
 		type text,
 		important integer not null default 1,
 		notes text,
@@ -138,15 +148,14 @@ var schemaStatements = []string{
 	)`,
 	`create table if not exists routes (
 		id integer primary key,
-		name text,
+		name text not null,
 		from_site_id integer not null,
 		to_site_id integer not null,
 		expected_distance_min_km real,
 		expected_distance_max_km real,
-		expected_duration_min_min integer,
-		expected_duration_max_min integer,
-		confidence_boost real,
-		auto_merge_gap_min integer,
+		expected_duration_min_min real,
+		expected_duration_max_min real,
+		confidence real,
 		notes text,
 		created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
 		updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -158,58 +167,107 @@ var schemaStatements = []string{
 		id integer primary key,
 		started_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
 		completed_at text,
-		status text not null default 'running',
+		status text not null default 'RUNNING',
+		app_version text,
+		algorithm_version text,
+		config_hash text,
+		config_json text,
+		gps_start_time text,
+		gps_end_time text,
 		notes text
 	)`,
 	`create table if not exists trips (
 		id integer primary key,
-		run_id integer,
-		trip_index integer,
-		started_at text,
-		ended_at text,
+		run_id integer not null,
+		trip_index integer not null,
 		from_site_id integer,
 		to_site_id integer,
-		status text,
+		departure_time text,
+		arrival_time text,
+		duration_minutes real,
+		distance_km real,
+		point_count integer,
+		movement_points integer,
+		stationary_points integer,
+		is_check integer not null default 0,
+		route_id integer,
 		notes text,
-		foreign key (run_id) references processing_runs(id) on delete set null,
+		created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+		updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+		foreign key (run_id) references processing_runs(id) on delete cascade,
 		foreign key (from_site_id) references sites(id) on delete set null,
 		foreign key (to_site_id) references sites(id) on delete set null,
+		foreign key (route_id) references routes(id) on delete set null,
 		unique (run_id, trip_index)
+	)`,
+	`create table if not exists trip_waypoints (
+		id integer primary key,
+		trip_id integer not null,
+		gps_point_id integer not null,
+		seq integer not null,
+		time text,
+		lat real,
+		lng real,
+		speed_kph real,
+		foreign key (trip_id) references trips(id) on delete cascade,
+		foreign key (gps_point_id) references gps_points(id) on delete cascade,
+		unique (trip_id, seq)
 	)`,
 	`create table if not exists gps_point_classifications (
 		id integer primary key,
-		run_id integer,
+		run_id integer not null,
 		gps_point_id integer not null,
-		classification text not null,
+		point_status text not null,
+		movement_status text,
+		quality_status text,
 		reason text,
+		flags text,
 		created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-		foreign key (run_id) references processing_runs(id) on delete set null,
-		foreign key (gps_point_id) references gps_points(id) on delete cascade
+		foreign key (run_id) references processing_runs(id) on delete cascade,
+		foreign key (gps_point_id) references gps_points(id) on delete cascade,
+		unique (run_id, gps_point_id)
 	)`,
 	`create table if not exists route_stats (
 		id integer primary key,
-		route_id integer,
-		period_start text,
-		period_end text,
+		run_id integer not null,
+		from_site_id integer,
+		to_site_id integer,
 		trip_count integer not null default 0,
 		median_distance_km real,
-		notes text,
-		foreign key (route_id) references routes(id) on delete set null
+		min_distance_km real,
+		max_distance_km real,
+		median_duration_min real,
+		min_duration_min real,
+		max_duration_min real,
+		first_seen text,
+		last_seen text,
+		suggested_name text,
+		created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+		updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+		foreign key (run_id) references processing_runs(id) on delete cascade,
+		foreign key (from_site_id) references sites(id) on delete set null,
+		foreign key (to_site_id) references sites(id) on delete set null
 	)`,
 	`create table if not exists issues (
 		id integer primary key,
-		run_id integer,
-		trip_id integer,
-		gps_point_id integer,
+		run_id integer not null,
 		issue_type text not null,
-		details text,
+		gps_point_id integer,
+		trip_id integer,
+		route_id integer,
+		site_id integer,
+		status text,
+		notes text,
 		created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-		foreign key (run_id) references processing_runs(id) on delete set null,
+		foreign key (run_id) references processing_runs(id) on delete cascade,
+		foreign key (gps_point_id) references gps_points(id) on delete set null,
 		foreign key (trip_id) references trips(id) on delete set null,
-		foreign key (gps_point_id) references gps_points(id) on delete set null
+		foreign key (route_id) references routes(id) on delete set null,
+		foreign key (site_id) references sites(id) on delete set null
 	)`,
-	`create index if not exists idx_gps_points_time on gps_points(time)`,
+	`create index if not exists idx_gps_points_time on gps_points(normalised_time)`,
 	`create index if not exists idx_gps_points_lat_lng on gps_points(lat, lng)`,
+	`create index if not exists idx_gps_point_sources_point on gps_point_sources(gps_point_id)`,
 	`create index if not exists idx_routes_from_to on routes(from_site_id, to_site_id)`,
 	`create index if not exists idx_trips_run on trips(run_id)`,
 	`create index if not exists idx_issues_issue_type on issues(issue_type)`,
