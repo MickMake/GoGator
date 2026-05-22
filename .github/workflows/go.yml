@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   test:
-    name: Test and vet
+    name: Test and smoke
     runs-on: ubuntu-latest
 
     steps:
@@ -27,17 +27,14 @@ jobs:
       - name: Show Go version
         run: go version
 
-      - name: Download modules
-        run: go mod download
-
       - name: Run tests
-        run: go test ./...
+        run: go test -mod=vendor ./...
 
       - name: Run vet
-        run: go vet ./...
+        run: go vet -mod=vendor ./...
 
       - name: Build CLI
-        run: go build -o gogator ./cmd/gogator
+        run: go build -mod=vendor -o gogator ./cmd/gogator
 
-      - name: Check extended command help
-        run: ./gogator commands
+      - name: Run smoke tests
+        run: bash scripts/smoke.sh
