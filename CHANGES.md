@@ -5,7 +5,7 @@
 - Added SQLite foundation with a new internal store package and default database path `gogator.sqlite`.
 - Implemented `gogator db init` to create the SQLite database schema and indexes idempotently.
 - Implemented `gogator db status` to report database path, SQLite version, and core table counts (`gps_points`, `sites`, `routes`, `processing_runs`, `trips`, `issues`).
-- Added focused tests for DB init idempotency and DB status baseline counts.
+- Added focused SQLite foundation tests for DB init idempotency, schema/table/index expectations, baseline status counts, and missing-DB status error handling.
 
 ## v0.23
 
