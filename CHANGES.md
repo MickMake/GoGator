@@ -2,6 +2,7 @@
 
 ## v0.26
 
+- Added recognised-but-stubbed Google vendor commands: `load google` and `dump google`, both returning `not implemented yet` for now.
 - Renamed vendor tracker interchange commands: `import raw` is now `load gator`, and `export raw` is now `dump gator`.
 - Removed the old `import raw` and `export raw` command forms; GoGator is still alpha before v1.0, so no backwards compatibility alias is kept.
 - Implemented `gogator db backup [[as] file]`, creating a new SQLite backup file with SQLite `VACUUM INTO`.
