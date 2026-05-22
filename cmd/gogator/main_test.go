@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -39,12 +40,18 @@ func TestAddSiteRecognized(t *testing.T) {
 	}
 }
 
-func TestImportRecognized(t *testing.T) {
-	if err := run([]string{"import", "gps", "from", "file.csv"}); err == nil || !strings.Contains(err.Error(), "not implemented yet: import gps") {
-		t.Fatalf("got %v", err)
+func TestImportGPSRecognized(t *testing.T) {
+	t.Chdir(t.TempDir())
+	_ = run([]string{"db", "init"})
+	csvData := "dt,lat,lng,altitude,angle,speed,params\n2026-05-01 00:00:00,-33.0,151.0,10,90,42,io1=1\n"
+	if err := os.WriteFile("gps.csv", []byte(csvData), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if err := run([]string{"import", "gps", "file.csv"}); err == nil || !strings.Contains(err.Error(), "not implemented yet: import gps") {
-		t.Fatalf("got %v", err)
+	if err := run([]string{"import", "gps", "from", "gps.csv"}); err != nil {
+		t.Fatalf("import gps from: %v", err)
+	}
+	if err := run([]string{"import", "gps", "gps.csv"}); err != nil {
+		t.Fatalf("import gps direct: %v", err)
 	}
 }
 
