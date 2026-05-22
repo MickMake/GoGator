@@ -15,11 +15,19 @@ gogator load gator from tracker.csv
 gogator dump gator as tracker.csv
 ```
 
+Recognised but not implemented yet:
+
+```bash
+gogator load google from google.json
+gogator dump google as google.json
+```
+
 Rules:
 
 - `load gator` replaces `import raw`.
 - `dump gator` replaces `export raw`.
-- `gator` is currently the only supported vendor.
+- `gator` is currently implemented.
+- `google` is recognised as a planned vendor and returns `not implemented yet`.
 - `load gator` ingests original Gator/Teltonika tracker CSV exports.
 - Gator tracker exports are plain CSV.
 - `load gator` should also accept TSV input.
@@ -116,6 +124,8 @@ Not implemented yet:
 
 ```bash
 gogator process gps ...
+gogator load google ...
+gogator dump google ...
 gogator export trips ...
 gogator export jitter ...
 gogator export stats ...
