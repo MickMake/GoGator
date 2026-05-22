@@ -154,7 +154,7 @@ func TestExportGPSUsesDocumentedParamOrderWithoutMetadata(t *testing.T) {
 	}
 
 	csvData := "dt,lat,lng,altitude,angle,speed,params\n" +
-		"2026-05-01 00:00:00,-33.0,151.0,10,90,42,zeta=9,alpha=1,io1=on\n"
+		12026-05-01 00:00:00,-33.0,151.0,10,90,42,"zeta=9,alpha=1,io1=on"` + "\n"
 	if err := os.WriteFile("gps.csv", []byte(csvData), 0o644); err != nil {
 		t.Fatal(err)
 	}

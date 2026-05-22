@@ -12,13 +12,12 @@ Implemented command:
 
 ```bash
 gogator import raw from tracker.csv
+gogator export raw as tracker.csv
 ```
 
 Planned commands/behaviour:
 
 ```bash
-gogator import raw from tracker.csv
-gogator export raw as tracker.csv
 ```
 
 Rules:

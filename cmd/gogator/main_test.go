@@ -81,7 +81,7 @@ func TestImportGPSRejected(t *testing.T) {
 func TestExportGPSRecognized(t *testing.T) {
 	t.Chdir(t.TempDir())
 	_ = run([]string{"db", "init"})
-	csvData := "dt,lat,lng,altitude,angle,speed,params\n2026-05-01 00:00:00,-33.0,151.0,10,90,42,zeta=9,alpha=1\n"
+	csvData := "dt,lat,lng,altitude,angle,speed,params\n" + `2026-05-01 00:00:00,-33.0,151.0,10,90,42,"zeta=9,alpha=1"` + "\n"
 	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
 		t.Fatal(err)
 	}
