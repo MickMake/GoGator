@@ -40,6 +40,22 @@ func TestAddSiteRecognized(t *testing.T) {
 	}
 }
 
+func TestGPSParamsSettingsStubsRecognized(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"set", "gps", "params", "io66,io67"}, "not implemented yet: set gps params"},
+		{[]string{"show", "gps", "params"}, "not implemented yet: show gps params"},
+		{[]string{"reset", "gps", "params"}, "not implemented yet: reset gps params"},
+	} {
+		err := run(tc.args)
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%v got %v", tc.args, err)
+		}
+	}
+}
+
 func TestImportGPSRecognized(t *testing.T) {
 	t.Chdir(t.TempDir())
 	_ = run([]string{"db", "init"})
@@ -73,7 +89,7 @@ func TestExportGPSRecognized(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(data)
-	for _, want := range []string{"Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\talpha\tzeta", "2026-05-01 00:00:00", "\t1\t9"} {
+	for _, want := range []string{"Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\tgpslev\tgsmlev\tpdop\tio1", "\talpha\tzeta", "2026-05-01 00:00:00", "\t1\t9"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("export missing %q in:\n%s", want, text)
 		}
