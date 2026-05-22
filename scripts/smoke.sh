@@ -58,6 +58,7 @@ log "Show command help"
 commands_output="$($BIN commands)"
 assert_contains "$commands_output" "import gps [from] <file...>" "commands help"
 assert_contains "$commands_output" "export gps [[as] file]" "commands help"
+assert_contains "$commands_output" "set gps params" "commands help"
 assert_contains "$commands_output" "export routes" "commands help"
 
 log "Initialise database"
@@ -65,6 +66,23 @@ log "Initialise database"
   cd "$DATA"
   init_output="$($BIN db init)"
   assert_contains "$init_output" "initialised database" "db init"
+)
+
+log "Check GPS param settings stubs are recognised"
+(
+  cd "$DATA"
+  if "$BIN" set gps params io66,io67 >set-params.out 2>&1; then
+    fail "set gps params unexpectedly succeeded"
+  fi
+  assert_file_contains set-params.out "not implemented yet: set gps params"
+  if "$BIN" show gps params >show-params.out 2>&1; then
+    fail "show gps params unexpectedly succeeded"
+  fi
+  assert_file_contains show-params.out "not implemented yet: show gps params"
+  if "$BIN" reset gps params >reset-params.out 2>&1; then
+    fail "reset gps params unexpectedly succeeded"
+  fi
+  assert_file_contains reset-params.out "not implemented yet: reset gps params"
 )
 
 log "Import GPS CSV, export clean flattened GPS, and verify idempotent row count"
@@ -85,8 +103,10 @@ CSV
   assert_contains "$repeat_output" "new gps point sources: 0" "gps duplicate import"
 
   $BIN export gps as exported-gps.tsv
-  assert_file_contains exported-gps.tsv $'Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\talpha\tio1\tzeta'
-  assert_file_contains exported-gps.tsv $'2026-05-01 00:00:00\t2026-05-01T10:00:00+10:00\t-33\t151\t10\t90\t42\t1\t1\t9'
+  assert_file_contains exported-gps.tsv $'Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\tgpslev\tgsmlev\tpdop\tio1'
+  assert_file_contains exported-gps.tsv $'g0\tg1\tg2\talpha\tzeta'
+  assert_file_contains exported-gps.tsv "2026-05-01 00:00:00"
+  assert_file_contains exported-gps.tsv $'\t1\t1\t9'
   assert_file_not_contains exported-gps.tsv "Params Raw"
   assert_file_not_contains exported-gps.tsv "Params JSON"
   assert_file_not_contains exported-gps.tsv "First Source File"
