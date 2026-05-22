@@ -55,6 +55,31 @@ func TestImportGPSRecognized(t *testing.T) {
 	}
 }
 
+func TestExportGPSRecognized(t *testing.T) {
+	t.Chdir(t.TempDir())
+	_ = run([]string{"db", "init"})
+	csvData := "dt,lat,lng,altitude,angle,speed,params\n2026-05-01 00:00:00,-33.0,151.0,10,90,42,zeta=9,alpha=1\n"
+	if err := os.WriteFile("gps.csv", []byte(csvData), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := run([]string{"import", "gps", "from", "gps.csv"}); err != nil {
+		t.Fatalf("import gps: %v", err)
+	}
+	if err := run([]string{"export", "gps", "as", "gps.tsv"}); err != nil {
+		t.Fatalf("export gps: %v", err)
+	}
+	data, err := os.ReadFile("gps.tsv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	for _, want := range []string{"Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\talpha\tzeta", "2026-05-01 00:00:00", "\t1\t9"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("export missing %q in:\n%s", want, text)
+		}
+	}
+}
+
 func TestExportRecognized(t *testing.T) {
 	err := run([]string{"export", "trips", "during", "2026", "as", "trips.tsv"})
 	if err == nil || !strings.Contains(err.Error(), "not implemented yet: export trips") {
