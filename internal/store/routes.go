@@ -16,10 +16,10 @@ type RouteRecord struct {
 	Name                      string
 	Confidence                string
 	Notes                     string
-	ExpectedDistanceMinKM     float64
-	ExpectedDistanceMaxKM     float64
-	ExpectedDurationMinMin    float64
-	ExpectedDurationMaxMin    float64
+	ExpectedDistanceMinKM     sql.NullFloat64
+	ExpectedDistanceMaxKM     sql.NullFloat64
+	ExpectedDurationMinMin    sql.NullFloat64
+	ExpectedDurationMaxMin    sql.NullFloat64
 }
 
 var routeHeader = []string{"From", "To", "Name", "Confidence", "Notes", "Expected Distance Min Km", "Expected Distance Max Km", "Expected Duration Min Min", "Expected Duration Max Min"}
@@ -56,7 +56,18 @@ func ExportRoutes(path string) error {
 	for rows.Next() {
 		var r RouteRecord
 		if err := rows.Scan(&r.FromSite, &r.ToSite, &r.Name, &r.Confidence, &r.Notes, &r.ExpectedDistanceMinKM, &r.ExpectedDistanceMaxKM, &r.ExpectedDurationMinMin, &r.ExpectedDurationMaxMin); err != nil { return err }
-		rec := []string{r.FromSite, r.ToSite, r.Name, r.Confidence, r.Notes, trimFloat(r.ExpectedDistanceMinKM), trimFloat(r.ExpectedDistanceMaxKM), trimFloat(r.ExpectedDurationMinMin), trimFloat(r.ExpectedDurationMaxMin)}
+rec := []string{
+	r.FromSite,
+	r.ToSite,
+	r.Name,
+	r.Confidence,
+	r.Notes,
+	trimNullFloat(r.ExpectedDistanceMinKM),
+	trimNullFloat(r.ExpectedDistanceMaxKM),
+	trimNullFloat(r.ExpectedDurationMinMin),
+	trimNullFloat(r.ExpectedDurationMaxMin),
+}
+
 		if err := w.Write(rec); err != nil { return err }
 	}
 	if err := rows.Err(); err != nil { return err }
@@ -138,18 +149,60 @@ func parseRoutesFile(path string) ([]RouteRecord, error) {
 		from := get(row, "from"); to := get(row, "to")
 		if from == "" { return nil, fmt.Errorf("%s: row %d: column From: missing value", path, rowNum) }
 		if to == "" { return nil, fmt.Errorf("%s: row %d: column To: missing value", path, rowNum) }
-		parseNum := func(key, label string) (float64, error) {
-			v := get(row, key)
-			if v == "" { return 0, nil }
-			n, err := strconv.ParseFloat(v, 64)
-			if err != nil { return 0, fmt.Errorf("%s: row %d: column %s: invalid number", path, rowNum, label) }
-			return n, nil
-		}
-		dmin, err := parseNum("expected distance min km", "Expected Distance Min Km"); if err != nil { return nil, err }
-		dmax, err := parseNum("expected distance max km", "Expected Distance Max Km"); if err != nil { return nil, err }
-		tmin, err := parseNum("expected duration min min", "Expected Duration Min Min"); if err != nil { return nil, err }
-		tmax, err := parseNum("expected duration max min", "Expected Duration Max Min"); if err != nil { return nil, err }
-		out = append(out, RouteRecord{FromSite: from, ToSite: to, Name: get(row, "name"), Confidence: get(row, "confidence"), Notes: get(row, "notes"), ExpectedDistanceMinKM: dmin, ExpectedDistanceMaxKM: dmax, ExpectedDurationMinMin: tmin, ExpectedDurationMaxMin: tmax})
+
+parseNum := func(key, label string) (sql.NullFloat64, error) {
+	v := get(row, key)
+	if v == "" {
+		return sql.NullFloat64{}, nil
+	}
+
+	n, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return sql.NullFloat64{}, fmt.Errorf("%s: row %d: column %s: invalid number", path, rowNum, label)
+	}
+
+	return sql.NullFloat64{Float64: n, Valid: true}, nil
+}
+
+dmin, err := parseNum("expected distance min km", "Expected Distance Min Km")
+if err != nil {
+	return nil, err
+}
+
+dmax, err := parseNum("expected distance max km", "Expected Distance Max Km")
+if err != nil {
+	return nil, err
+}
+
+tmin, err := parseNum("expected duration min min", "Expected Duration Min Min")
+if err != nil {
+	return nil, err
+}
+
+tmax, err := parseNum("expected duration max min", "Expected Duration Max Min")
+if err != nil {
+	return nil, err
+}
+
+out = append(out, RouteRecord{
+	FromSite:               from,
+	ToSite:                 to,
+	Name:                   get(row, "name"),
+	Confidence:             get(row, "confidence"),
+	Notes:                  get(row, "notes"),
+	ExpectedDistanceMinKM:  dmin,
+	ExpectedDistanceMaxKM:  dmax,
+	ExpectedDurationMinMin: tmin,
+	ExpectedDurationMaxMin: tmax,
+})
 	}
 	return out, nil
 }
+
+func trimNullFloat(f sql.NullFloat64) string {
+	if !f.Valid {
+		return ""
+	}
+	return trimFloat(f.Float64)
+}
+
