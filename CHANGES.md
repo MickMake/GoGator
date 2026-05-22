@@ -6,6 +6,7 @@
 - Implemented `gogator db init` to create the SQLite database schema and indexes idempotently.
 - Implemented `gogator db status` to report database path, SQLite version, and core table counts (`gps_points`, `sites`, `routes`, `processing_runs`, `trips`, `issues`).
 - Added focused tests for DB init idempotency and DB status baseline counts.
+- Corrective: aligned the v0.26 Run 1 SQLite schema in `internal/store` with the Codex prompt naming and structure (including required tables, key columns, foreign keys, and required indexes).
 
 ## v0.23
 
