@@ -2,6 +2,10 @@
 
 ## v0.26
 
+- Implemented `gogator db backup [[as] file]`, creating a new SQLite backup file with SQLite `VACUUM INTO`.
+- Implemented `gogator db vacuum` to compact the default SQLite database in place.
+- Added focused store tests, CLI tests, and smoke coverage for database backup and vacuum.
+- Documented that raw export currently preserves accurate representation rather than exact source text: trailing numeric zeroes may be cropped and parameter order may differ.
 - Implemented `gogator export raw`, writing tracker-style CSV with columns `dt,lat,lng,altitude,angle,speed,params`.
 - Wired `export raw [[as] file]` through the CLI and updated help wording from planned to implemented.
 - Added raw export tests covering CSV shape, preserved raw params, deterministic row order, and re-import safety.
