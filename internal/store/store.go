@@ -108,7 +108,7 @@ func queryCount(db *sql.DB, table string, out *int64) error {
 }
 
 var schemaStatements = []string{
-CREATE TABLE IF NOT EXISTS gps_points (
+`CREATE TABLE IF NOT EXISTS gps_points (
     id INTEGER PRIMARY KEY,
     point_hash TEXT NOT NULL UNIQUE,
     first_source_file TEXT,
@@ -126,12 +126,12 @@ CREATE TABLE IF NOT EXISTS gps_points (
     params_raw TEXT,
     params_json TEXT,
     imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+);`,
 
-CREATE INDEX IF NOT EXISTS idx_gps_points_time ON gps_points(normalised_time);
-CREATE INDEX IF NOT EXISTS idx_gps_points_lat_lng ON gps_points(lat, lng);
+`CREATE INDEX IF NOT EXISTS idx_gps_points_time ON gps_points(normalised_time);`,
+`CREATE INDEX IF NOT EXISTS idx_gps_points_lat_lng ON gps_points(lat, lng);`,
 
-CREATE TABLE IF NOT EXISTS gps_point_sources (
+`CREATE TABLE IF NOT EXISTS gps_point_sources (
     id INTEGER PRIMARY KEY,
     gps_point_id INTEGER NOT NULL,
     source_file TEXT NOT NULL,
@@ -139,9 +139,9 @@ CREATE TABLE IF NOT EXISTS gps_point_sources (
     imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (gps_point_id) REFERENCES gps_points(id),
     UNIQUE (gps_point_id, source_file, raw_row)
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS sites (
+`CREATE TABLE IF NOT EXISTS sites (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     address TEXT,
@@ -154,9 +154,9 @@ CREATE TABLE IF NOT EXISTS sites (
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS routes (
+`CREATE TABLE IF NOT EXISTS routes (
     id INTEGER PRIMARY KEY,
     from_site_id INTEGER NOT NULL,
     to_site_id INTEGER NOT NULL,
@@ -172,9 +172,9 @@ CREATE TABLE IF NOT EXISTS routes (
     FOREIGN KEY (from_site_id) REFERENCES sites(id),
     FOREIGN KEY (to_site_id) REFERENCES sites(id),
     UNIQUE (from_site_id, to_site_id)
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS processing_runs (
+`CREATE TABLE IF NOT EXISTS processing_runs (
     id INTEGER PRIMARY KEY,
     started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TEXT,
@@ -186,9 +186,9 @@ CREATE TABLE IF NOT EXISTS processing_runs (
     gps_start_time TEXT,
     gps_end_time TEXT,
     notes TEXT
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS trips (
+`CREATE TABLE IF NOT EXISTS trips (
     id INTEGER PRIMARY KEY,
     run_id INTEGER NOT NULL,
     trip_index INTEGER NOT NULL,
@@ -222,9 +222,9 @@ CREATE TABLE IF NOT EXISTS trips (
     FOREIGN KEY (destination_site_id) REFERENCES sites(id),
     FOREIGN KEY (route_id) REFERENCES routes(id),
     UNIQUE (run_id, trip_index)
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS trip_waypoints (
+`CREATE TABLE IF NOT EXISTS trip_waypoints (
     id INTEGER PRIMARY KEY,
     trip_id INTEGER NOT NULL,
     gps_point_id INTEGER NOT NULL,
@@ -233,9 +233,9 @@ CREATE TABLE IF NOT EXISTS trip_waypoints (
     FOREIGN KEY (gps_point_id) REFERENCES gps_points(id),
     UNIQUE (trip_id, gps_point_id),
     UNIQUE (trip_id, point_index)
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS gps_point_classifications (
+`CREATE TABLE IF NOT EXISTS gps_point_classifications (
     id INTEGER PRIMARY KEY,
     run_id INTEGER NOT NULL,
     gps_point_id INTEGER NOT NULL,
@@ -247,9 +247,9 @@ CREATE TABLE IF NOT EXISTS gps_point_classifications (
     FOREIGN KEY (run_id) REFERENCES processing_runs(id),
     FOREIGN KEY (gps_point_id) REFERENCES gps_points(id),
     UNIQUE (run_id, gps_point_id)
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS route_stats (
+`CREATE TABLE IF NOT EXISTS route_stats (
     id INTEGER PRIMARY KEY,
     run_id INTEGER NOT NULL,
     from_site_id INTEGER NOT NULL,
@@ -268,9 +268,9 @@ CREATE TABLE IF NOT EXISTS route_stats (
     FOREIGN KEY (from_site_id) REFERENCES sites(id),
     FOREIGN KEY (to_site_id) REFERENCES sites(id),
     UNIQUE (run_id, from_site_id, to_site_id)
-);
+);`,
 
-CREATE TABLE IF NOT EXISTS issues (
+`CREATE TABLE IF NOT EXISTS issues (
     id INTEGER PRIMARY KEY,
     run_id INTEGER,
     issue_type TEXT NOT NULL,
@@ -286,5 +286,5 @@ CREATE TABLE IF NOT EXISTS issues (
     FOREIGN KEY (trip_id) REFERENCES trips(id),
     FOREIGN KEY (route_id) REFERENCES routes(id),
     FOREIGN KEY (site_id) REFERENCES sites(id)
-);
+);`
 }
