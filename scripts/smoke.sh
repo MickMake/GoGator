@@ -56,8 +56,8 @@ log "Build CLI with vendored dependencies"
 
 log "Show command help"
 commands_output="$($BIN commands)"
-assert_contains "$commands_output" "import raw [from] <file...>" "commands help"
-assert_contains "$commands_output" "export raw [[as] file]" "commands help"
+assert_contains "$commands_output" "load gator [from] <file...>" "commands help"
+assert_contains "$commands_output" "dump gator [[as] file]" "commands help"
 assert_contains "$commands_output" "export gps [[as] file]" "commands help"
 assert_contains "$commands_output" "db backup [[as] file]" "commands help"
 assert_contains "$commands_output" "db vacuum" "commands help"
@@ -81,16 +81,20 @@ log "Backup and vacuum database"
   assert_contains "$vacuum_output" "vacuumed database: gogator.sqlite" "db vacuum"
 )
 
-log "Check renamed raw import command"
+log "Check removed raw import/export commands"
 (
   cd "$DATA"
-  if "$BIN" import gps from gps-a.csv >import-gps.out 2>&1; then
-    fail "import gps unexpectedly succeeded"
+  if "$BIN" import raw from gps-a.csv >import-raw.out 2>&1; then
+    fail "import raw unexpectedly succeeded"
   fi
-  assert_file_contains import-gps.out "import gps is not a command; use import raw"
+  assert_file_contains import-raw.out "unknown import target: raw"
+  if "$BIN" export raw as exported-raw.csv >export-raw.out 2>&1; then
+    fail "export raw unexpectedly succeeded"
+  fi
+  assert_file_contains export-raw.out "unknown export target: raw"
 )
 
-log "Import raw CSV, export raw CSV, export clean flattened GPS, and verify idempotent row count"
+log "Load Gator CSV, dump Gator CSV, export clean flattened GPS, and verify idempotent row count"
 
 cat > "$DATA/raw-a.csv" <<'CSV'
 dt,lat,lng,altitude,angle,speed,params
@@ -99,21 +103,21 @@ dt,lat,lng,altitude,angle,speed,params
 CSV
 (
   cd "$DATA"
-  import_output="$($BIN import raw from raw-a.csv)"
-  assert_contains "$import_output" "imported raw files: 1" "raw import"
-  assert_contains "$import_output" "new gps points: 2" "raw import"
-  assert_contains "$import_output" "new gps point sources: 2" "raw import"
+  load_output="$($BIN load gator from raw-a.csv)"
+  assert_contains "$load_output" "loaded gator files: 1" "gator load"
+  assert_contains "$load_output" "new gps points: 2" "gator load"
+  assert_contains "$load_output" "new gps point sources: 2" "gator load"
 
-  repeat_output="$($BIN import raw raw-a.csv)"
-  assert_contains "$repeat_output" "new gps points: 0" "raw duplicate import"
-  assert_contains "$repeat_output" "new gps point sources: 0" "raw duplicate import"
-  $BIN export raw as exported-raw.csv
-  assert_file_contains exported-raw.csv "dt,lat,lng,altitude,angle,speed,params"
-  assert_file_contains exported-raw.csv '2026-05-01 00:00:00,-33,151,10,90,42,"zeta=9,alpha=1,io1=1"'
-  assert_file_contains exported-raw.csv '2026-05-01 00:01:00,-33.1,151.1,11,91,43,"alpha=2,io1=0"'
+  repeat_output="$($BIN load gator raw-a.csv)"
+  assert_contains "$repeat_output" "new gps points: 0" "gator duplicate load"
+  assert_contains "$repeat_output" "new gps point sources: 0" "gator duplicate load"
+  $BIN dump gator as dumped-gator.csv
+  assert_file_contains dumped-gator.csv "dt,lat,lng,altitude,angle,speed,params"
+  assert_file_contains dumped-gator.csv '2026-05-01 00:00:00,-33,151,10,90,42,"zeta=9,alpha=1,io1=1"'
+  assert_file_contains dumped-gator.csv '2026-05-01 00:01:00,-33.1,151.1,11,91,43,"alpha=2,io1=0"'
 
-  raw_reimport_output="$($BIN import raw exported-raw.csv)"
-  assert_contains "$raw_reimport_output" "new gps points: 0" "raw export re-import"
+  gator_reimport_output="$($BIN load gator dumped-gator.csv)"
+  assert_contains "$gator_reimport_output" "new gps points: 0" "gator dump reload"
 
   $BIN export gps as exported-gps.csv
   assert_file_contains exported-gps.csv $'Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\tgpslev\tgsmlev\tpdop\tio1'
@@ -127,7 +131,7 @@ CSV
   assert_file_not_contains exported-gps.csv "Seen Count"
 
   status_output="$($BIN db status)"
-  assert_contains "$status_output" "gps_points: 2" "db status after raw import"
+  assert_contains "$status_output" "gps_points: 2" "db status after gator load"
 )
 
 log "Import/export sites with blank TSV fields"
