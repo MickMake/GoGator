@@ -3,9 +3,12 @@ package store
 import (
 	"crypto/sha256"
 	"database/sql"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -19,6 +22,8 @@ type GPSImportResult struct {
 	GPSPoints  int
 	SourceRows int
 }
+
+var gpsExportCoreHeader = []string{"Raw DT", "Normalised Time", "Lat", "Lng", "Altitude", "Angle", "Speed KPH"}
 
 func ImportGPS(paths []string, loc *time.Location, cfg config.Config) (GPSImportResult, error) {
 	if len(paths) == 0 {
@@ -70,6 +75,116 @@ func ImportGPS(paths []string, loc *time.Location, cfg config.Config) (GPSImport
 		return GPSImportResult{}, err
 	}
 	return result, nil
+}
+
+func ExportGPS(path string) error {
+	db, err := Open(DefaultPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	paramKeys, err := gpsExportParamKeys(db)
+	if err != nil {
+		return err
+	}
+
+	rows, err := db.Query(`SELECT raw_dt,normalised_time,lat,lng,altitude,angle,speed_kph,COALESCE(params_json,'') FROM gps_points ORDER BY normalised_time,id`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	w.Comma = '\t'
+	header := append([]string{}, gpsExportCoreHeader...)
+	header = append(header, paramKeys...)
+	if err := w.Write(header); err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var rawDT, normalisedTime, paramsJSON string
+		var lat, lng float64
+		var altitude, angle, speed sql.NullFloat64
+		if err := rows.Scan(&rawDT, &normalisedTime, &lat, &lng, &altitude, &angle, &speed, &paramsJSON); err != nil {
+			return err
+		}
+		params, err := decodeGPSParams(paramsJSON)
+		if err != nil {
+			return err
+		}
+		rec := []string{
+			rawDT,
+			normalisedTime,
+			trimFloat(lat),
+			trimFloat(lng),
+			trimNullFloat(altitude),
+			trimNullFloat(angle),
+			trimNullFloat(speed),
+		}
+		for _, key := range paramKeys {
+			rec = append(rec, params[key])
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	w.Flush()
+	return w.Error()
+}
+
+func gpsExportParamKeys(db *sql.DB) ([]string, error) {
+	rows, err := db.Query(`SELECT COALESCE(params_json,'') FROM gps_points`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	seen := map[string]bool{}
+	for rows.Next() {
+		var paramsJSON string
+		if err := rows.Scan(&paramsJSON); err != nil {
+			return nil, err
+		}
+		params, err := decodeGPSParams(paramsJSON)
+		if err != nil {
+			return nil, err
+		}
+		for key := range params {
+			seen[key] = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	keys := make([]string, 0, len(seen))
+	for key := range seen {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys, nil
+}
+
+func decodeGPSParams(paramsJSON string) (map[string]string, error) {
+	params := map[string]string{}
+	if strings.TrimSpace(paramsJSON) == "" {
+		return params, nil
+	}
+	if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
+		return nil, fmt.Errorf("decode gps params: %w", err)
+	}
+	return params, nil
 }
 
 func insertGPSPointTx(tx *sql.Tx, point gps.RawPoint) (int64, bool, error) {
