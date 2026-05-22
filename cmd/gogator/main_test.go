@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-func TestAddRouteRejected(t *testing.T) {
+func TestLegacyAddRouteUnknown(t *testing.T) {
 	err := run([]string{"add_route"})
-	if err == nil || !strings.Contains(err.Error(), "add_route has been replaced") {
+	if err == nil || !strings.Contains(err.Error(), "unknown command: add_route") {
 		t.Fatalf("got %v", err)
 	}
 }
