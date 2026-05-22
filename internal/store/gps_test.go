@@ -147,9 +147,9 @@ func TestExportGPSFlattensSortedParamsWithoutMetadata(t *testing.T) {
 			}
 		}
 	}
-	wantRowPrefix := []string{"2026-05-01 00:00:00", "2026-05-01T10:00:00+10:00", "-33", "151", "10", "90", "42", "1", "on", "9"}
-	if !reflect.DeepEqual(rows[1], wantRowPrefix) {
-		t.Fatalf("unexpected row\nwant: %#v\n got: %#v", wantRowPrefix, rows[1])
+	wantRow := []string{"2026-05-01 00:00:00", "2026-05-01T00:00:00Z", "-33", "151", "10", "90", "42", "1", "on", "9"}
+	if !reflect.DeepEqual(rows[1], wantRow) {
+		t.Fatalf("unexpected row\nwant: %#v\n got: %#v", wantRow, rows[1])
 	}
 }
 
