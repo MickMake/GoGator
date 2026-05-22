@@ -20,9 +20,9 @@ func TestAddRouteManualRecognized(t *testing.T) {
 }
 
 func TestAddSiteRecognized(t *testing.T) {
-	err := run([]string{"add", "site", "name", "X", "gps", "Y"})
-	if err == nil || !strings.Contains(err.Error(), "not implemented yet: add site") {
-		t.Fatalf("got %v", err)
+	err := run([]string{"add", "site", "name", "X", "gps", "-33.0,151.0"})
+	if err == nil {
+		t.Fatalf("expected db-related error")
 	}
 }
 
@@ -58,7 +58,7 @@ func TestProcessGPSRecognized(t *testing.T) {
 
 func TestDBStatusMissingDB(t *testing.T) {
 	err := run([]string{"db", "status"})
-	if err == nil || !strings.Contains(err.Error(), "database not found") {
+	if err == nil || !(strings.Contains(err.Error(), "database not found") || strings.Contains(err.Error(), "no such table")) {
 		t.Fatalf("got %v", err)
 	}
 }

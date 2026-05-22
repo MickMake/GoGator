@@ -12,7 +12,7 @@ import (
 )
 
 const appName = "gogator"
-const version = "v0.25"
+const version = "v0.26"
 
 var errUsage = errors.New("usage error")
 
@@ -124,7 +124,8 @@ func add(args []string) error {
 		if err := parsePairs(args[1:], map[string]bool{"name": true, "gps": true, "address": false, "range": false, "dwell": false, "type": false, "important": false, "notes": false}); err != nil {
 			return err
 		}
-		return fmt.Errorf("not implemented yet: add site")
+		pairs, _ := pairsMap(args[1:])
+		return addSiteDB(pairs)
 	case "route":
 		if len(args) >= 4 {
 			if idx, err := strconv.Atoi(args[1]); err == nil && idx > 0 && args[2] == "from" {
@@ -145,8 +146,18 @@ func deleteCmd(args []string) error {
 		return fmt.Errorf("%w: usage: gogator delete <site|route> ...", errUsage)
 	}
 	switch args[0] {
-	case "site", "route":
-		return fmt.Errorf("not implemented yet: delete %s", args[0])
+	case "site":
+		if len(args) < 2 {
+			return fmt.Errorf("%w: usage: gogator delete site <name> [anyway]", errUsage)
+		}
+		anyway := len(args) > 2 && args[2] == "anyway"
+		if err := store.DeleteSite(args[1], anyway); err != nil {
+			return err
+		}
+		fmt.Printf("deleted site: %s\n", args[1])
+		return nil
+	case "route":
+		return fmt.Errorf("not implemented yet: delete route")
 	default:
 		return fmt.Errorf("%w: unknown delete target: %s", errUsage, args[0])
 	}
@@ -157,8 +168,19 @@ func importCmd(args []string) error {
 		return fmt.Errorf("%w: usage: gogator import <gps|sites|routes> ...", errUsage)
 	}
 	switch args[0] {
-	case "gps", "sites", "routes":
+	case "gps", "routes":
 		return fmt.Errorf("not implemented yet: import %s", args[0])
+	case "sites":
+		path, err := parseFileArg(args[1:])
+		if err != nil {
+			return err
+		}
+		n, err := store.ImportSites(path)
+		if err != nil {
+			return fmt.Errorf("import sites: %w", err)
+		}
+		fmt.Printf("imported %d site(s) from %s\n", n, path)
+		return nil
 	case "addresses":
 		return fmt.Errorf("%w: addresses is not a command; use sites instead", errUsage)
 	default:
@@ -171,8 +193,22 @@ func exportCmd(args []string) error {
 		return fmt.Errorf("%w: usage: gogator export <gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
 	}
 	switch args[0] {
-	case "gps", "sites", "routes", "trips", "jitter", "stats", "issues", "paths":
+	case "gps", "routes", "trips", "jitter", "stats", "issues", "paths":
 		return fmt.Errorf("not implemented yet: export %s", args[0])
+	case "sites":
+		path := "sites.tsv"
+		if len(args) > 1 {
+			p, err := parseOptionalAsFile(args[1:])
+			if err != nil {
+				return err
+			}
+			path = p
+		}
+		if err := store.ExportSites(path); err != nil {
+			return fmt.Errorf("export sites: %w", err)
+		}
+		fmt.Printf("exported sites to %s\n", path)
+		return nil
 	case "addresses":
 		return fmt.Errorf("%w: addresses is not a command; use sites instead", errUsage)
 	default:
@@ -399,4 +435,63 @@ Examples:
   %[1]s process 2026-04_raw.csv 2026-05_raw.csv
   %[1]s process 2026-04_raw.csv --timezone Australia/Sydney
 `, appName)
+}
+
+func pairsMap(args []string) (map[string]string, error) {
+	if len(args)%2 != 0 {
+		return nil, fmt.Errorf("%w: missing value for field: %s", errUsage, args[len(args)-1])
+	}
+	m := map[string]string{}
+	for i := 0; i < len(args); i += 2 {
+		m[args[i]] = args[i+1]
+	}
+	return m, nil
+}
+func addSiteDB(m map[string]string) error {
+	latlng := strings.Split(m["gps"], ",")
+	if len(latlng) < 2 {
+		return fmt.Errorf("%w: invalid gps", errUsage)
+	}
+	lat, err := strconv.ParseFloat(strings.TrimSpace(latlng[0]), 64)
+	if err != nil {
+		return err
+	}
+	lng, err := strconv.ParseFloat(strings.TrimSpace(latlng[1]), 64)
+	if err != nil {
+		return err
+	}
+	rng, _ := strconv.ParseFloat(strings.TrimSpace(m["range"]), 64)
+	dwell, _ := strconv.ParseFloat(strings.TrimSpace(m["dwell"]), 64)
+	important := parseImportant(strings.TrimSpace(m["important"]))
+	err = store.UpsertSite(store.SiteRecord{Name: m["name"], Address: m["address"], Lat: lat, Lng: lng, RangeM: rng, MinDestinationMinutes: dwell, Type: m["type"], Important: important, Notes: m["notes"]})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("upserted site: %s\n", m["name"])
+	return nil
+}
+func parseImportant(v string) bool {
+	if v == "" {
+		return true
+	}
+	v = strings.ToLower(v)
+	return v == "1" || v == "true" || v == "yes" || v == "y"
+}
+func parseFileArg(args []string) (string, error) {
+	if len(args) == 1 {
+		return args[0], nil
+	}
+	if len(args) == 2 && args[0] == "from" {
+		return args[1], nil
+	}
+	return "", fmt.Errorf("%w: usage: gogator import sites [from] <file>", errUsage)
+}
+func parseOptionalAsFile(args []string) (string, error) {
+	if len(args) == 1 {
+		return args[0], nil
+	}
+	if len(args) == 2 && args[0] == "as" {
+		return args[1], nil
+	}
+	return "", fmt.Errorf("%w: usage: gogator export sites [as] <file>", errUsage)
 }
