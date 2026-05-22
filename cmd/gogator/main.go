@@ -135,7 +135,18 @@ func add(args []string) error {
 		if err := parsePairs(args[1:], map[string]bool{"from": true, "to": true, "name": false, "confidence": false, "notes": false}); err != nil {
 			return err
 		}
-		return fmt.Errorf("not implemented yet: add route")
+		pairs, _ := pairsMap(args[1:])
+		if err := store.UpsertRoute(store.RouteRecord{
+			FromSite:   pairs["from"],
+			ToSite:     pairs["to"],
+			Name:       pairs["name"],
+			Confidence: pairs["confidence"],
+			Notes:      pairs["notes"],
+		}); err != nil {
+			return err
+		}
+		fmt.Printf("upserted route: %s -> %s\n", pairs["from"], pairs["to"])
+		return nil
 	default:
 		return fmt.Errorf("%w: unknown add target: %s", errUsage, args[0])
 	}
@@ -157,7 +168,15 @@ func deleteCmd(args []string) error {
 		fmt.Printf("deleted site: %s\n", args[1])
 		return nil
 	case "route":
-		return fmt.Errorf("not implemented yet: delete route")
+		if err := parsePairs(args[1:], map[string]bool{"from": true, "to": true}); err != nil {
+			return err
+		}
+		pairs, _ := pairsMap(args[1:])
+		if err := store.DeleteRoute(pairs["from"], pairs["to"]); err != nil {
+			return err
+		}
+		fmt.Printf("deleted route: %s -> %s\n", pairs["from"], pairs["to"])
+		return nil
 	default:
 		return fmt.Errorf("%w: unknown delete target: %s", errUsage, args[0])
 	}
@@ -168,8 +187,19 @@ func importCmd(args []string) error {
 		return fmt.Errorf("%w: usage: gogator import <gps|sites|routes> ...", errUsage)
 	}
 	switch args[0] {
-	case "gps", "routes":
+	case "gps":
 		return fmt.Errorf("not implemented yet: import %s", args[0])
+	case "routes":
+		path, err := parseFileArg(args[1:])
+		if err != nil {
+			return err
+		}
+		n, err := store.ImportRoutes(path)
+		if err != nil {
+			return fmt.Errorf("import routes: %w", err)
+		}
+		fmt.Printf("imported %d route(s) from %s\n", n, path)
+		return nil
 	case "sites":
 		path, err := parseFileArg(args[1:])
 		if err != nil {
@@ -193,8 +223,22 @@ func exportCmd(args []string) error {
 		return fmt.Errorf("%w: usage: gogator export <gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
 	}
 	switch args[0] {
-	case "gps", "routes", "trips", "jitter", "stats", "issues", "paths":
+	case "gps", "trips", "jitter", "stats", "issues", "paths":
 		return fmt.Errorf("not implemented yet: export %s", args[0])
+	case "routes":
+		path := "routes.tsv"
+		if len(args) > 1 {
+			p, err := parseOptionalAsFile(args[1:])
+			if err != nil {
+				return err
+			}
+			path = p
+		}
+		if err := store.ExportRoutes(path); err != nil {
+			return fmt.Errorf("export routes: %w", err)
+		}
+		fmt.Printf("exported routes to %s\n", path)
+		return nil
 	case "sites":
 		path := "sites.tsv"
 		if len(args) > 1 {

@@ -13,8 +13,19 @@ func TestAddRouteRejected(t *testing.T) {
 }
 
 func TestAddRouteManualRecognized(t *testing.T) {
+	t.Chdir(t.TempDir())
+	_ = run([]string{"db", "init"})
+	_ = run([]string{"add", "site", "name", "A", "gps", "-33.0,151.0"})
+	_ = run([]string{"add", "site", "name", "B", "gps", "-33.1,151.1"})
 	err := run([]string{"add", "route", "from", "A", "to", "B"})
-	if err == nil || !strings.Contains(err.Error(), "not implemented yet: add route") {
+	if err != nil {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestAddRoutePromotionPathStillUsed(t *testing.T) {
+	err := run([]string{"add", "route", "1", "from", "missing.tsv"})
+	if err == nil || !strings.Contains(err.Error(), "open missing.tsv") {
 		t.Fatalf("got %v", err)
 	}
 }
