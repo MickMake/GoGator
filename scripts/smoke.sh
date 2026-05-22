@@ -59,6 +59,8 @@ commands_output="$($BIN commands)"
 assert_contains "$commands_output" "import raw [from] <file...>" "commands help"
 assert_contains "$commands_output" "export raw [[as] file]" "commands help"
 assert_contains "$commands_output" "export gps [[as] file]" "commands help"
+assert_contains "$commands_output" "db backup [[as] file]" "commands help"
+assert_contains "$commands_output" "db vacuum" "commands help"
 assert_contains "$commands_output" "set gps params" "commands help"
 assert_contains "$commands_output" "export routes" "commands help"
 
@@ -67,6 +69,16 @@ log "Initialise database"
   cd "$DATA"
   init_output="$($BIN db init)"
   assert_contains "$init_output" "initialised database" "db init"
+)
+
+log "Backup and vacuum database"
+(
+  cd "$DATA"
+  backup_output="$($BIN db backup as smoke-backup.sqlite)"
+  assert_contains "$backup_output" "backed up database to smoke-backup.sqlite" "db backup"
+  test -s smoke-backup.sqlite || fail "db backup did not create a non-empty file"
+  vacuum_output="$($BIN db vacuum)"
+  assert_contains "$vacuum_output" "vacuumed database: gogator.sqlite" "db vacuum"
 )
 
 log "Check renamed raw import command"
