@@ -6,8 +6,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"gogator/internal/app"
+	"gogator/internal/config"
 	"gogator/internal/store"
 )
 
@@ -188,9 +190,13 @@ func importCmd(args []string) error {
 	}
 	switch args[0] {
 	case "gps":
-		return fmt.Errorf("not implemented yet: import %s", args[0])
+		paths, err := parseFileArgs("gps", args[1:])
+		if err != nil {
+			return err
+		}
+		return importGPS(paths)
 	case "routes":
-		path, err := parseFileArg(args[1:])
+		path, err := parseFileArg("routes", args[1:])
 		if err != nil {
 			return err
 		}
@@ -201,7 +207,7 @@ func importCmd(args []string) error {
 		fmt.Printf("imported %d route(s) from %s\n", n, path)
 		return nil
 	case "sites":
-		path, err := parseFileArg(args[1:])
+		path, err := parseFileArg("sites", args[1:])
 		if err != nil {
 			return err
 		}
@@ -218,6 +224,29 @@ func importCmd(args []string) error {
 	}
 }
 
+func importGPS(paths []string) error {
+	cfg, err := config.Load(app.DefaultConfigPath())
+	if err != nil {
+		return err
+	}
+	if envTZ := os.Getenv("GOGATOR_TIMEZONE"); envTZ != "" {
+		cfg.Timezone = envTZ
+	}
+	loc, err := time.LoadLocation(cfg.Timezone)
+	if err != nil {
+		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
+	}
+	result, err := store.ImportGPS(paths, loc, cfg)
+	if err != nil {
+		return fmt.Errorf("import gps: %w", err)
+	}
+	fmt.Printf("imported gps files: %d\n", result.Files)
+	fmt.Printf("raw gps rows read: %d\n", result.RawRows)
+	fmt.Printf("new gps points: %d\n", result.GPSPoints)
+	fmt.Printf("new gps point sources: %d\n", result.SourceRows)
+	return nil
+}
+
 func exportCmd(args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("%w: usage: gogator export <gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
@@ -228,7 +257,7 @@ func exportCmd(args []string) error {
 	case "routes":
 		path := "routes.tsv"
 		if len(args) > 1 {
-			p, err := parseOptionalAsFile(args[1:])
+			p, err := parseOptionalAsFile("routes", args[1:])
 			if err != nil {
 				return err
 			}
@@ -242,7 +271,7 @@ func exportCmd(args []string) error {
 	case "sites":
 		path := "sites.tsv"
 		if len(args) > 1 {
-			p, err := parseOptionalAsFile(args[1:])
+			p, err := parseOptionalAsFile("sites", args[1:])
 			if err != nil {
 				return err
 			}
@@ -337,7 +366,6 @@ Global notes:
   Default timezone:        Australia/Sydney
   Supported date formats:  YYYY, YYYY-MM, or YYYY-MM-DD
   Current process command: file-based CSV processing remains supported
-  Future DB commands:      recognised now, implemented over staged releases
 
 Commands:
   process <gps.csv...>                         Process raw GPS CSV files using current file-based workflow.
@@ -348,24 +376,24 @@ Commands:
   db backup ...                                Planned: backup database.
   db vacuum                                    Planned: compact database.
 
-  import gps [from] <file...>                  Planned: import GPS tracker CSV rows into the database.
-  import sites [from] <file>                   Planned: import site definitions.
-  import routes [from] <file>                  Planned: import directional route definitions.
+  import gps [from] <file...>                  Import GPS tracker CSV rows into the database.
+  import sites [from] <file>                   Import site definitions.
+  import routes [from] <file>                  Import directional route definitions.
 
   export gps [date] [[as] file]                Planned: export GPS tracker points.
-  export sites [[as] file]                     Planned: export site definitions.
-  export routes [[as] file]                    Planned: export directional route definitions.
+  export sites [[as] file]                     Export site definitions.
+  export routes [[as] file]                    Export directional route definitions.
   export trips [date] [[as] file]              Planned: export processed trips.
   export jitter [date] [[as] file]             Planned: export jitter/suppressed trip rows.
   export stats [date] [[as] file]              Planned: export route/trip statistics.
   export issues [date] [[as] file]             Planned: export review/problem rows.
   export paths [route/date] [[as] file]        Planned: export trip/route waypoint evidence.
 
-  add site <name/value pairs>                  Planned: add or replace one site.
-  add route <name/value pairs>                 Planned: add or replace one route.
+  add site <name/value pairs>                  Add or replace one site.
+  add route <name/value pairs>                 Add or replace one route.
   add route <index> from <stats.csv|tsv>       Promote one observed route into routes.csv.
-  delete site <name> [anyway]                  Planned: delete one site with safety checks.
-  delete route from <site> to <site> [anyway]  Planned: delete one directional route rule.
+  delete site <name> [anyway]                  Delete one site with safety checks.
+  delete route from <site> to <site>           Delete one directional route rule.
 
   commands                                    Show extended command help with examples.
   command                                     Alias for commands.
@@ -373,18 +401,14 @@ Commands:
   help                                        Show this help.
 
 Examples:
-  %[1]s process 2026-04_raw.csv
-  %[1]s process 2026-04_raw.csv 2026-05_raw.csv
-  %[1]s process 2026-04_raw.csv --timezone Australia/Sydney
-  %[1]s add route 3 from 2026-04_route_observations.csv
-
+  %[1]s process raw.csv
+  %[1]s process raw.csv --timezone Australia/Sydney
   %[1]s db init
-  %[1]s import gps from 2026-04_raw.csv
+  %[1]s import gps from raw.csv
   %[1]s import sites from sites.tsv
   %[1]s import routes from routes.tsv
-  %[1]s export trips during 2026 as trips.tsv
-  %[1]s export gps during 2026-04 as gps.tsv
-  %[1]s export paths from "Home Sweet Home" to "Asquith Public School" during 2026 as school-run-paths.tsv
+  %[1]s export sites as sites.tsv
+  %[1]s export routes as routes.tsv
 
 Configuration:
   GOGATOR_TIMEZONE             Optional timezone override.
@@ -393,78 +417,7 @@ Configuration:
 }
 
 func commands() {
-	fmt.Printf(`GoGator command guide
-
-Supported date formats:
-  YYYY, YYYY-MM, or YYYY-MM-DD
-
-Command families:
-
-  process
-    Intent: Convert raw Gator/Teltonika GPS CSV exports into spreadsheet-ready trip logs.
-    Current:
-      %[1]s process <gps.csv...> [--timezone Australia/Sydney] [--config gogator.yaml] [--sites sites.csv] [--routes routes.csv]
-    Planned:
-      %[1]s process gps during 2026
-      %[1]s process gps from 2026 to 2027
-    Notes:
-      The current file-based process command remains supported while SQLite work is staged.
-
-  db
-    Intent: Low-level database maintenance.
-    Planned:
-      %[1]s db init
-      %[1]s db status
-      %[1]s db backup
-      %[1]s db vacuum
-
-  import
-    Intent: Load many records into the future SQLite evidence store.
-    Planned:
-      %[1]s import gps 2026-04_raw.csv
-      %[1]s import gps from 2026-04_raw.csv 2026-05_raw.csv
-      %[1]s import sites from sites.tsv
-      %[1]s import routes from routes.tsv
-    Notes:
-      Use gps, not raw. Use sites, not addresses; address is a field on a site.
-
-  export
-    Intent: Export many records or views from the future SQLite evidence store.
-    Planned:
-      %[1]s export gps during 2026-04 as gps.tsv
-      %[1]s export sites as sites.tsv
-      %[1]s export routes as routes.tsv
-      %[1]s export trips during 2026 as trips.tsv
-      %[1]s export jitter during 2026 as jitter.tsv
-      %[1]s export stats during 2026 as stats.tsv
-      %[1]s export issues during 2026 as issues.tsv
-      %[1]s export paths from "Home Sweet Home" to "Asquith Public School" during 2026 as paths.tsv
-
-  add
-    Intent: Add or replace one record.
-    Planned:
-      %[1]s add site name "Bunnings Thornleigh" gps "-33.72816964,150.97700866" range 200 type Supplier important yes
-      %[1]s add route from "Home Sweet Home" to "Asquith Public School" name "School run"
-    Current:
-      %[1]s add route 3 from 2026-04_route_observations.csv
-    Notes:
-      add route from a route observations file preserves the old add_route workflow under the new command shape.
-
-  delete
-    Intent: Delete one record, with future safety checks.
-    Planned:
-      %[1]s delete site "Bunnings Thornleigh"
-      %[1]s delete route from "Home Sweet Home" to "Asquith Public School"
-    Notes:
-      Future delete commands should refuse dangerous deletes unless an explicit escape hatch such as anyway is supplied.
-
-  commands
-    Intent: Show this command guide.
-
-  version
-    Intent: Print the GoGator version.
-
-`, appName)
+	usage()
 }
 
 func processHelp() {
@@ -475,9 +428,8 @@ Intent:
   Process one or more raw GPS CSV files using the current file-based workflow.
 
 Examples:
-  %[1]s process 2026-04_raw.csv
-  %[1]s process 2026-04_raw.csv 2026-05_raw.csv
-  %[1]s process 2026-04_raw.csv --timezone Australia/Sydney
+  %[1]s process raw.csv
+  %[1]s process raw.csv --timezone Australia/Sydney
 `, appName)
 }
 
@@ -491,6 +443,7 @@ func pairsMap(args []string) (map[string]string, error) {
 	}
 	return m, nil
 }
+
 func addSiteDB(m map[string]string) error {
 	latlng := strings.Split(m["gps"], ",")
 	if len(latlng) < 2 {
@@ -514,6 +467,7 @@ func addSiteDB(m map[string]string) error {
 	fmt.Printf("upserted site: %s\n", m["name"])
 	return nil
 }
+
 func parseImportant(v string) bool {
 	if v == "" {
 		return true
@@ -521,21 +475,37 @@ func parseImportant(v string) bool {
 	v = strings.ToLower(v)
 	return v == "1" || v == "true" || v == "yes" || v == "y"
 }
-func parseFileArg(args []string) (string, error) {
-	if len(args) == 1 {
-		return args[0], nil
+
+func parseFileArg(target string, args []string) (string, error) {
+	files, err := parseFileArgs(target, args)
+	if err != nil {
+		return "", err
 	}
-	if len(args) == 2 && args[0] == "from" {
-		return args[1], nil
+	if len(files) != 1 {
+		return "", fmt.Errorf("%w: usage: gogator import %s [from] <file>", errUsage, target)
 	}
-	return "", fmt.Errorf("%w: usage: gogator import sites [from] <file>", errUsage)
+	return files[0], nil
 }
-func parseOptionalAsFile(args []string) (string, error) {
+
+func parseFileArgs(target string, args []string) ([]string, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("%w: usage: gogator import %s [from] <file...>", errUsage, target)
+	}
+	if args[0] == "from" {
+		args = args[1:]
+	}
+	if len(args) == 0 {
+		return nil, fmt.Errorf("%w: usage: gogator import %s [from] <file...>", errUsage, target)
+	}
+	return args, nil
+}
+
+func parseOptionalAsFile(target string, args []string) (string, error) {
 	if len(args) == 1 {
 		return args[0], nil
 	}
 	if len(args) == 2 && args[0] == "as" {
 		return args[1], nil
 	}
-	return "", fmt.Errorf("%w: usage: gogator export sites [as] <file>", errUsage)
+	return "", fmt.Errorf("%w: usage: gogator export %s [as] <file>", errUsage, target)
 }
