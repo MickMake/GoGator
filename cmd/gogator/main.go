@@ -37,6 +37,10 @@ func run(args []string) error {
 	switch args[0] {
 	case "process":
 		return process(args[1:])
+	case "load":
+		return loadCmd(args[1:])
+	case "dump":
+		return dumpCmd(args[1:])
 	case "add":
 		return add(args[1:])
 	case "delete":
@@ -118,6 +122,69 @@ func process(args []string) error {
 	if err := app.RunProcess(opts); err != nil {
 		return fmt.Errorf("error: %w", err)
 	}
+	return nil
+}
+
+func loadCmd(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("%w: usage: gogator load <vendor> [from] <file...>", errUsage)
+	}
+	switch args[0] {
+	case "gator":
+		paths, err := parseLoadFileArgs("gator", args[1:])
+		if err != nil {
+			return err
+		}
+		return loadGator(paths)
+	default:
+		return fmt.Errorf("%w: unknown load vendor: %s", errUsage, args[0])
+	}
+}
+
+func dumpCmd(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("%w: usage: gogator dump <vendor> [as] <file>", errUsage)
+	}
+	switch args[0] {
+	case "gator":
+		path := "gator.csv"
+		if len(args) > 1 {
+			p, err := parseOptionalDumpFile("gator", args[1:])
+			if err != nil {
+				return err
+			}
+			path = p
+		}
+		if err := store.ExportRaw(path); err != nil {
+			return fmt.Errorf("dump gator: %w", err)
+		}
+		fmt.Printf("dumped gator data to %s\n", path)
+		return nil
+	default:
+		return fmt.Errorf("%w: unknown dump vendor: %s", errUsage, args[0])
+	}
+}
+
+func loadGator(paths []string) error {
+	cfg, err := config.Load(app.DefaultConfigPath())
+	if err != nil {
+		return err
+	}
+	if envTZ := os.Getenv("GOGATOR_TIMEZONE"); envTZ != "" {
+		cfg.Timezone = envTZ
+	}
+	loc, err := time.LoadLocation(cfg.Timezone)
+	if err != nil {
+		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
+	}
+	result, err := store.ImportGPS(paths, loc, cfg)
+	if err != nil {
+		return fmt.Errorf("load gator: %w", err)
+	}
+	fmt.Printf("loaded gator files: %d\n", result.Files)
+	fmt.Printf("gator gps rows read: %d\n", result.RawRows)
+	fmt.Printf("new gps points: %d\n", result.GPSPoints)
+	fmt.Printf("new gps point sources: %d\n", result.SourceRows)
 	return nil
 }
 
@@ -209,17 +276,9 @@ func isGPSParamsCommand(args []string) bool {
 
 func importCmd(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("%w: usage: gogator import <raw|sites|routes> ...", errUsage)
+		return fmt.Errorf("%w: usage: gogator import <sites|routes> ...", errUsage)
 	}
 	switch args[0] {
-	case "raw":
-		paths, err := parseFileArgs("raw", args[1:])
-		if err != nil {
-			return err
-		}
-		return importRaw(paths)
-	case "gps":
-		return fmt.Errorf("%w: import gps is not a command; use import raw", errUsage)
 	case "routes":
 		path, err := parseFileArg("routes", args[1:])
 		if err != nil {
@@ -249,48 +308,11 @@ func importCmd(args []string) error {
 	}
 }
 
-func importRaw(paths []string) error {
-	cfg, err := config.Load(app.DefaultConfigPath())
-	if err != nil {
-		return err
-	}
-	if envTZ := os.Getenv("GOGATOR_TIMEZONE"); envTZ != "" {
-		cfg.Timezone = envTZ
-	}
-	loc, err := time.LoadLocation(cfg.Timezone)
-	if err != nil {
-		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
-	}
-	result, err := store.ImportGPS(paths, loc, cfg)
-	if err != nil {
-		return fmt.Errorf("import raw: %w", err)
-	}
-	fmt.Printf("imported raw files: %d\n", result.Files)
-	fmt.Printf("raw gps rows read: %d\n", result.RawRows)
-	fmt.Printf("new gps points: %d\n", result.GPSPoints)
-	fmt.Printf("new gps point sources: %d\n", result.SourceRows)
-	return nil
-}
-
 func exportCmd(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("%w: usage: gogator export <raw|gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
+		return fmt.Errorf("%w: usage: gogator export <gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
 	}
 	switch args[0] {
-	case "raw":
-		path := "raw.csv"
-		if len(args) > 1 {
-			p, err := parseOptionalAsFile("raw", args[1:])
-			if err != nil {
-				return err
-			}
-			path = p
-		}
-		if err := store.ExportRaw(path); err != nil {
-			return fmt.Errorf("export raw: %w", err)
-		}
-		fmt.Printf("exported raw to %s\n", path)
-		return nil
 	case "gps":
 		path := "gps.tsv"
 		if len(args) > 1 {
@@ -445,16 +467,17 @@ Commands:
   process <gps.csv...>                         Process raw GPS CSV files using current file-based workflow.
   process gps ...                              Planned DB-backed GPS processing.
 
+  load gator [from] <file...>                  Load Gator tracker CSV/TSV rows into the database.
+  dump gator [[as] file]                       Dump Gator tracker-compatible CSV rows.
+
   db init                                      Initialise gogator.sqlite schema.
   db status                                    Show database status and row counts.
   db backup [[as] file]                       Back up database to a new SQLite file.
   db vacuum                                    Compact database.
 
-  import raw [from] <file...>                  Import raw tracker CSV/TSV rows into the database.
   import sites [from] <file>                   Import site definitions.
   import routes [from] <file>                  Import directional route definitions.
 
-  export raw [[as] file]                       Export round-trippable raw tracker rows.
   export gps [[as] file]                       Export clean GPS tracker rows.
   export sites [[as] file]                     Export site definitions.
   export routes [[as] file]                    Export directional route definitions.
@@ -485,8 +508,8 @@ Examples:
   %[1]s db init
   %[1]s db backup as gogator-backup.sqlite
   %[1]s db vacuum
-  %[1]s import raw from raw.csv
-  %[1]s export raw as raw.csv
+  %[1]s load gator from raw.csv
+  %[1]s dump gator as gator.csv
   %[1]s export gps as gps.tsv
   %[1]s set gps params io66,io67,io200
   %[1]s import sites from sites.tsv
@@ -584,6 +607,19 @@ func parseFileArgs(target string, args []string) ([]string, error) {
 	return args, nil
 }
 
+func parseLoadFileArgs(vendor string, args []string) ([]string, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("%w: usage: gogator load %s [from] <file...>", errUsage, vendor)
+	}
+	if args[0] == "from" {
+		args = args[1:]
+	}
+	if len(args) == 0 {
+		return nil, fmt.Errorf("%w: usage: gogator load %s [from] <file...>", errUsage, vendor)
+	}
+	return args, nil
+}
+
 func parseOptionalAsFile(target string, args []string) (string, error) {
 	if len(args) == 1 {
 		return args[0], nil
@@ -592,6 +628,16 @@ func parseOptionalAsFile(target string, args []string) (string, error) {
 		return args[1], nil
 	}
 	return "", fmt.Errorf("%w: usage: gogator export %s [as] <file>", errUsage, target)
+}
+
+func parseOptionalDumpFile(vendor string, args []string) (string, error) {
+	if len(args) == 1 {
+		return args[0], nil
+	}
+	if len(args) == 2 && args[0] == "as" {
+		return args[1], nil
+	}
+	return "", fmt.Errorf("%w: usage: gogator dump %s [as] <file>", errUsage, vendor)
 }
 
 func parseOptionalDBFile(target string, args []string) (string, error) {
