@@ -4,36 +4,32 @@ This file tracks agreed GoGator work that is not implemented yet. It is intentio
 
 ## Command model
 
-### Raw tracker data
+### Vendor tracker data
 
-`raw` means source/backup/round-trip tracker data.
+Vendor tracker commands handle external tracker interchange formats.
 
 Implemented command:
 
 ```bash
-gogator import raw from tracker.csv
-gogator export raw as tracker.csv
-```
-
-Planned commands/behaviour:
-
-```bash
+gogator load gator from tracker.csv
+gogator dump gator as tracker.csv
 ```
 
 Rules:
 
-- `import raw` replaces the old planned/current `import gps` meaning.
-- `import gps` is not a command; use `import raw`.
-- `import raw` ingests original Gator/Teltonika tracker CSV exports.
+- `load gator` replaces `import raw`.
+- `dump gator` replaces `export raw`.
+- `gator` is currently the only supported vendor.
+- `load gator` ingests original Gator/Teltonika tracker CSV exports.
 - Gator tracker exports are plain CSV.
-- `import raw` should also accept TSV input.
-- `export raw` exports tracker-style CSV columns: `dt,lat,lng,altitude,angle,speed,params`.
-- `export raw` must export a round-trippable raw file.
-- A raw CSV exported by GoGator should be suitable for importing again with `import raw`.
+- `load gator` should also accept TSV input.
+- `dump gator` exports tracker-style CSV columns: `dt,lat,lng,altitude,angle,speed,params`.
+- `dump gator` must export a round-trippable Gator tracker file.
+- A Gator CSV dumped by GoGator should be suitable for loading again with `load gator`.
 - For CSV source data, the intended ideal is:
 
 ```text
-original Gator CSV -> import raw -> export raw -> diff original.csv exported.csv
+original Gator CSV -> load gator -> dump gator -> diff original.csv dumped.csv
 ```
 
 with zero meaningful changes.
@@ -41,10 +37,10 @@ with zero meaningful changes.
 Notes:
 
 - Preserve original raw fields and field ordering where possible.
-- Avoid adding source metadata, audit columns, or GoGator-only columns to `export raw`.
+- Avoid adding source metadata, audit columns, or GoGator-only columns to `dump gator`.
 - If exact byte-for-byte preservation proves impossible because of CSV quoting/newline differences, document the exact limitation and preserve semantic equality. The goal remains zero diff for normal Gator CSV exports.
-- Current SQLite stores GPS numeric values as floats, so exported raw numeric formatting is semantic rather than byte-for-byte identical to the original imported text.
-- The accepted current raw-export representation is accurate even when float formatting drops trailing zeroes and parameter order differs from the source file.
+- Current SQLite stores GPS numeric values as floats, so dumped Gator numeric formatting is semantic rather than byte-for-byte identical to the original loaded text.
+- The accepted current Gator dump representation is accurate even when float formatting drops trailing zeroes and parameter order differs from the source file.
 
 ### Clean GPS data
 
@@ -146,7 +142,7 @@ gogator process <raw-gps.csv...>
 
 Future decision:
 
-- Decide whether `process <raw-gps.csv...>` becomes a convenience wrapper around `import raw`, `process gps`, and default exports.
+- Decide whether `process <raw-gps.csv...>` becomes a convenience wrapper around `load gator`, `process gps`, and default exports.
 - No migration/backwards compatibility requirement yet because the tool is not actively in production use.
 
 ## Export commands after process gps
