@@ -57,7 +57,9 @@ log "Build CLI with vendored dependencies"
 log "Show command help"
 commands_output="$($BIN commands)"
 assert_contains "$commands_output" "load gator [from] <file...>" "commands help"
+assert_contains "$commands_output" "load google [from] <file...>" "commands help"
 assert_contains "$commands_output" "dump gator [[as] file]" "commands help"
+assert_contains "$commands_output" "dump google [[as] file]" "commands help"
 assert_contains "$commands_output" "export gps [[as] file]" "commands help"
 assert_contains "$commands_output" "db backup [[as] file]" "commands help"
 assert_contains "$commands_output" "db vacuum" "commands help"
@@ -79,6 +81,19 @@ log "Backup and vacuum database"
   test -s smoke-backup.sqlite || fail "db backup did not create a non-empty file"
   vacuum_output="$($BIN db vacuum)"
   assert_contains "$vacuum_output" "vacuumed database: gogator.sqlite" "db vacuum"
+)
+
+log "Check google vendor stubs"
+(
+  cd "$DATA"
+  if "$BIN" load google from google.json >load-google.out 2>&1; then
+    fail "load google unexpectedly succeeded"
+  fi
+  assert_file_contains load-google.out "not implemented yet: load google"
+  if "$BIN" dump google as google.json >dump-google.out 2>&1; then
+    fail "dump google unexpectedly succeeded"
+  fi
+  assert_file_contains dump-google.out "not implemented yet: dump google"
 )
 
 log "Check removed raw import/export commands"
