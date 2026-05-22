@@ -136,6 +136,11 @@ func loadCmd(args []string) error {
 			return err
 		}
 		return loadGator(paths)
+	case "google":
+		if _, err := parseLoadFileArgs("google", args[1:]); err != nil {
+			return err
+		}
+		return fmt.Errorf("not implemented yet: load google")
 	default:
 		return fmt.Errorf("%w: unknown load vendor: %s", errUsage, args[0])
 	}
@@ -160,6 +165,13 @@ func dumpCmd(args []string) error {
 		}
 		fmt.Printf("dumped gator data to %s\n", path)
 		return nil
+	case "google":
+		if len(args) > 1 {
+			if _, err := parseOptionalDumpFile("google", args[1:]); err != nil {
+				return err
+			}
+		}
+		return fmt.Errorf("not implemented yet: dump google")
 	default:
 		return fmt.Errorf("%w: unknown dump vendor: %s", errUsage, args[0])
 	}
@@ -468,7 +480,9 @@ Commands:
   process gps ...                              Planned DB-backed GPS processing.
 
   load gator [from] <file...>                  Load Gator tracker CSV/TSV rows into the database.
+  load google [from] <file...>                 Planned: load Google tracker/location data.
   dump gator [[as] file]                       Dump Gator tracker-compatible CSV rows.
+  dump google [[as] file]                      Planned: dump Google tracker/location data.
 
   db init                                      Initialise gogator.sqlite schema.
   db status                                    Show database status and row counts.
@@ -510,6 +524,7 @@ Examples:
   %[1]s db vacuum
   %[1]s load gator from raw.csv
   %[1]s dump gator as gator.csv
+  %[1]s load google from google.json
   %[1]s export gps as gps.tsv
   %[1]s set gps params io66,io67,io200
   %[1]s import sites from sites.tsv
