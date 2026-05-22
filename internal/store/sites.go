@@ -170,14 +170,18 @@ func parseSitesFile(path string) ([]SiteRecord, error) {
 		return nil, err
 	}
 	if len(rows) < 1 {
-		return nil, nil
+		return nil, fmt.Errorf("missing header row")
 	}
 	idx := map[string]int{}
 	for i, h := range rows[0] {
-		idx[strings.ToLower(strings.TrimSpace(h))] = i
+		idx[strings.ToLower(strings.TrimSpace(strings.TrimPrefix(h, "\ufeff")))] = i
 	}
-	req := []string{"site", "gps", "range", "min destination minutes", "type", "important"}
-	_ = req
+	if _, ok := idx["site"]; !ok {
+		return nil, fmt.Errorf("missing required column: Site")
+	}
+	if _, ok := idx["gps"]; !ok {
+		return nil, fmt.Errorf("missing required column: GPS")
+	}
 	var out []SiteRecord
 	for ln, row := range rows[1:] {
 		if len(strings.TrimSpace(strings.Join(row, ""))) == 0 {
@@ -189,13 +193,36 @@ func parseSitesFile(path string) ([]SiteRecord, error) {
 			}
 			return ""
 		}
-		lat, lng, ok := parseGPS(get("gps"))
+		name := get("site")
+		if name == "" {
+			return nil, fmt.Errorf("row %d: missing site name", ln+2)
+		}
+		gpsValue := get("gps")
+		if gpsValue == "" {
+			if latText := get("lat"); latText != "" {
+				if lngText := get("lng"); lngText != "" {
+					gpsValue = latText + "," + lngText
+				}
+			}
+		}
+		if gpsValue == "" {
+			if gpsIdx, ok := idx["gps"]; ok && gpsIdx+1 < len(row) {
+				gpsValue = strings.TrimSpace(row[gpsIdx]) + "," + strings.TrimSpace(row[gpsIdx+1])
+			}
+		}
+		lat, lng, ok := parseGPS(gpsValue)
 		if !ok {
 			return nil, fmt.Errorf("row %d: invalid gps", ln+2)
 		}
-		rng, _ := strconv.ParseFloat(zeroIfEmpty(get("range")), 64)
-		dwell, _ := strconv.ParseFloat(zeroIfEmpty(get("min destination minutes")), 64)
-		out = append(out, SiteRecord{Name: get("site"), Address: get("address"), Lat: lat, Lng: lng, RangeM: rng, MinDestinationMinutes: dwell, Type: get("type"), Important: parseBool(get("important"), true), Notes: get("notes")})
+		rng, err := parseOptionalFloat(get("range"))
+		if err != nil {
+			return nil, fmt.Errorf("row %d: invalid range", ln+2)
+		}
+		dwell, err := parseOptionalFloat(get("min destination minutes"))
+		if err != nil {
+			return nil, fmt.Errorf("row %d: invalid min destination minutes", ln+2)
+		}
+		out = append(out, SiteRecord{Name: name, Address: get("address"), Lat: lat, Lng: lng, RangeM: rng, MinDestinationMinutes: dwell, Type: get("type"), Important: parseBool(get("important"), true), Notes: get("notes")})
 	}
 	return out, nil
 }
@@ -228,9 +255,9 @@ func boolText(b bool) string {
 	return "no"
 }
 func trimFloat(f float64) string { return strconv.FormatFloat(f, 'f', -1, 64) }
-func zeroIfEmpty(s string) string {
+func parseOptionalFloat(s string) (float64, error) {
 	if strings.TrimSpace(s) == "" {
-		return "0"
+		return 0, nil
 	}
-	return s
+	return strconv.ParseFloat(strings.TrimSpace(s), 64)
 }
