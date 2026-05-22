@@ -52,6 +52,26 @@ Example:
 gogator dump gator as tracker-backup.csv
 ```
 
+### `gogator load google [from] <file...>`
+
+Intent: planned future loader for Google tracker/location data. Currently recognised and returns `not implemented yet`.
+
+Example:
+
+```bash
+gogator load google from google.json
+```
+
+### `gogator dump google [[as] file]`
+
+Intent: planned future dumper for Google tracker/location data. Currently recognised and returns `not implemented yet`.
+
+Example:
+
+```bash
+gogator dump google as google.json
+```
+
 ### `gogator add route <index> from <route_observations.csv>`
 
 Intent: promote an indexed observed route to `routes.csv`.
@@ -84,6 +104,8 @@ gogator db vacuum
 
 gogator load gator from 2026-04_raw.csv
 gogator dump gator as 2026-04_gator.csv
+gogator load google from google.json
+gogator dump google as google.json
 
 gogator import sites from sites.tsv
 gogator import routes from routes.tsv
