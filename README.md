@@ -163,6 +163,6 @@ GoGator includes safeguards for false stationary GPS clusters:
 ## Build and test
 
 ```bash
-go test ./...
-go build -o gogator ./cmd/gogator
+go test -mod=vendor ./...
+go build -mod=vendor -o gogator ./cmd/gogator
 ```

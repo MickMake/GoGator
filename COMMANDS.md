@@ -61,7 +61,7 @@ These commands are recognised by the CLI but will be implemented in staged SQLit
 gogator db init
 gogator db status
 
-gogator import gps from 2026-04_raw.csv
+gogator import raw from 2026-04_raw.csv
 gogator import sites from sites.tsv
 gogator import routes from routes.tsv
 

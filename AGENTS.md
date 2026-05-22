@@ -2,7 +2,7 @@
 
 ## Project intent
 
-GoGator is a local Go 1.22 CLI for processing raw Gator/Teltonika GPS CSV exports into deterministic, spreadsheet-friendly trip logs.
+GoGator is a local Go 1.25 CLI for processing raw Gator/Teltonika GPS CSV exports into deterministic, spreadsheet-friendly trip logs.
 
 Raw GPS CSV is canonical. Do not use Gator's processed drive/stop exports as the source of truth; they have shown suspicious timestamp and trip-detection behaviour.
 
@@ -25,7 +25,7 @@ Raw GPS CSV is canonical. Do not use Gator's processed drive/stop exports as the
 
 ## Development environment
 
-- Go version target: 1.22.
+- Go version target: 1.25.
 - Module: `gogator`.
 - Main package: `./cmd/gogator`.
 

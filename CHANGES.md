@@ -46,6 +46,7 @@
 - When the `Important` column is omitted, sites default to important for backwards compatibility.
 - Added an important-site ledger pass that treats unimportant sites and `CHECK` rows as pass-through noise, collapsing them into the next important site where possible.
 - Same-important-site loops created by unimportant fragments are moved to jitter instead of the main processed output.
+- Set `go.mod` to Go 1.25 to match the target development version.
 
 ## v0.19
 
