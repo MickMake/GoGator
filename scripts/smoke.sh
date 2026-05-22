@@ -78,25 +78,21 @@ log "Check renamed raw import command"
   assert_file_contains import-gps.out "import gps is not a command; use import raw"
 )
 
-log "Check renamed raw import command and raw export stub"
+log "Check renamed raw import command"
 (
   cd "$DATA"
   if "$BIN" import gps from gps-a.csv >import-gps.out 2>&1; then
     fail "import gps unexpectedly succeeded"
   fi
   assert_file_contains import-gps.out "import gps is not a command; use import raw"
-  if "$BIN" export raw as raw.csv >export-raw.out 2>&1; then
-    fail "export raw unexpectedly succeeded"
-  fi
-  assert_file_contains export-raw.out "not implemented yet: export raw"
 )
 
 log "Import raw CSV, export raw CSV, export clean flattened GPS, and verify idempotent row count"
 
 cat > "$DATA/raw-a.csv" <<'CSV'
 dt,lat,lng,altitude,angle,speed,params
-2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1,io1=1
-2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,alpha=2,io1=0
+2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,"zeta=9,alpha=1,io1=1"
+2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,"alpha=2,io1=0"
 CSV
 (
   cd "$DATA"
@@ -116,15 +112,17 @@ CSV
   raw_reimport_output="$($BIN import raw exported-raw.csv)"
   assert_contains "$raw_reimport_output" "new gps points: 0" "raw export re-import"
 
-  $BIN export gps as exported-gps.tsv
-  assert_file_contains exported-gps.tsv $'Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\tgpslev\tgsmlev\tpdop\tio1'
-  assert_file_contains exported-gps.tsv $'g0\tg1\tg2\talpha\tzeta'
-  assert_file_contains exported-gps.tsv "2026-05-01 00:00:00"
-  assert_file_contains exported-gps.tsv $'\t1\t1\t9'
-  assert_file_not_contains exported-gps.tsv "Params Raw"
-  assert_file_not_contains exported-gps.tsv "Params JSON"
-  assert_file_not_contains exported-gps.tsv "First Source File"
-  assert_file_not_contains exported-gps.tsv "Seen Count"
+  $BIN export gps as exported-gps.csv
+  assert_file_contains exported-gps.csv $'Raw DT,Normalised Time,Lat,Lng,Altitude,Angle,Speed KPH,gpslev,gsmlev,pdop,io1'
+  assert_file_contains exported-gps.csv $'g0,g1,g2,alpha,zeta'
+  assert_file_contains exported-gps.csv "2026-05-01 00:00:00"
+  assert_file_contains exported-gps.csv $',1,'
+  assert_file_contains exported-gps.csv $',19'
+  assert_file_contains exported-gps.csv $',2'
+  assert_file_not_contains exported-gps.csv "Params Raw"
+  assert_file_not_contains exported-gps.csv "Params JSON"
+  assert_file_not_contains exported-gps.csv "First Source File"
+  assert_file_not_contains exported-gps.csv "Seen Count"
 
   status_output="$($BIN db status)"
   assert_contains "$status_output" "gps_points: 2" "db status after raw import"

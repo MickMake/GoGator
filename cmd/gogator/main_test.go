@@ -109,7 +109,7 @@ func TestExportRawRecognized(t *testing.T) {
 	_ = run([]string{"db", "init"})
 
 	csvData := "dt,lat,lng,altitude,angle,speed,params\n" +
-		"2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1\n"
+		`2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,"zeta=9,alpha=1"` + "\n"
 
 	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
 		t.Fatal(err)

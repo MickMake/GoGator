@@ -283,9 +283,3 @@ func parseRoutesFile(path string) ([]RouteRecord, error) {
 	return out, nil
 }
 
-func trimNullFloat(f sql.NullFloat64) string {
-	if !f.Valid {
-		return ""
-	}
-	return trimFloat(f.Float64)
-}

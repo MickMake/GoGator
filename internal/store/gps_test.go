@@ -108,8 +108,8 @@ func TestExportRawWritesRoundTrippableTrackerCSV(t *testing.T) {
 	}
 
 	csvData := "dt,lat,lng,altitude,angle,speed,params\n" +
-		"2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1,io1=1\n" +
-		"2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,alpha=2,io1=0\n"
+		`2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,"zeta=9,alpha=1,io1=1"` + "\n" +
+		`2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,"alpha=2,io1=0"` + "\n"
 	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
 		t.Fatal(err)
 	}

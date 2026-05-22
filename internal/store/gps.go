@@ -143,6 +143,68 @@ func ExportGPS(path string) error {
 	return w.Error()
 }
 
+func ExportRaw(path string) error {
+	db, err := Open(DefaultPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT raw_dt,lat,lng,altitude,angle,speed_kph,COALESCE(params_raw,'') FROM gps_points ORDER BY normalised_time,id`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	if err := w.Write([]string{"dt", "lat", "lng", "altitude", "angle", "speed", "params"}); err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var rawDT, paramsRaw string
+		var lat, lng float64
+		var altitude, angle, speed sql.NullFloat64
+		if err := rows.Scan(&rawDT, &lat, &lng, &altitude, &angle, &speed, &paramsRaw); err != nil {
+			return err
+		}
+
+		rec := []string{
+			rawDT,
+			trimFloat(lat),
+			trimFloat(lng),
+			trimNullFloat(altitude),
+			trimNullFloat(angle),
+			trimNullFloat(speed),
+			paramsRaw,
+		}
+
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	w.Flush()
+	return w.Error()
+}
+
+func trimNullFloat(v sql.NullFloat64) string {
+	if !v.Valid {
+		return ""
+	}
+	return trimFloat(v.Float64)
+}
+
 func gpsExportParamKeys(db *sql.DB) ([]string, error) {
 	rows, err := db.Query(`SELECT COALESCE(params_json,'') FROM gps_points`)
 	if err != nil {
