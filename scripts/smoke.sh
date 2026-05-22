@@ -38,6 +38,16 @@ assert_file_contains() {
   fi
 }
 
+assert_file_not_contains() {
+  local path="$1"
+  local needle="$2"
+  if grep -Fq "$needle" "$path"; then
+    printf 'File %s was:\n' "$path" >&2
+    cat "$path" >&2
+    fail "expected $path not to contain: $needle"
+  fi
+}
+
 log "Build CLI with vendored dependencies"
 (
   cd "$ROOT"
@@ -47,6 +57,7 @@ log "Build CLI with vendored dependencies"
 log "Show command help"
 commands_output="$($BIN commands)"
 assert_contains "$commands_output" "import gps [from] <file...>" "commands help"
+assert_contains "$commands_output" "export gps [[as] file]" "commands help"
 assert_contains "$commands_output" "export routes" "commands help"
 
 log "Initialise database"
@@ -56,11 +67,11 @@ log "Initialise database"
   assert_contains "$init_output" "initialised database" "db init"
 )
 
-log "Import GPS CSV and verify idempotent row count"
+log "Import GPS CSV, export clean flattened GPS, and verify idempotent row count"
 cat > "$DATA/gps-a.csv" <<'CSV'
 dt,lat,lng,altitude,angle,speed,params
-2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,io1=1
-2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,io1=0
+2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1,io1=1
+2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,alpha=2,io1=0
 CSV
 (
   cd "$DATA"
@@ -72,6 +83,14 @@ CSV
   repeat_output="$($BIN import gps gps-a.csv)"
   assert_contains "$repeat_output" "new gps points: 0" "gps duplicate import"
   assert_contains "$repeat_output" "new gps point sources: 0" "gps duplicate import"
+
+  $BIN export gps as exported-gps.tsv
+  assert_file_contains exported-gps.tsv $'Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\talpha\tio1\tzeta'
+  assert_file_contains exported-gps.tsv $'2026-05-01 00:00:00\t2026-05-01T10:00:00+10:00\t-33\t151\t10\t90\t42\t1\t1\t9'
+  assert_file_not_contains exported-gps.tsv "Params Raw"
+  assert_file_not_contains exported-gps.tsv "Params JSON"
+  assert_file_not_contains exported-gps.tsv "First Source File"
+  assert_file_not_contains exported-gps.tsv "Seen Count"
 
   status_output="$($BIN db status)"
   assert_contains "$status_output" "gps_points: 2" "db status after gps import"
@@ -121,11 +140,11 @@ TSV
   awk -F '\t' 'NR == 3 { if ($6 != "0" || $7 != "0" || $8 != "0" || $9 != "0") exit 1 }' exported-routes.tsv || fail "explicit zero route numbers were not preserved"
 )
 
-log "Legacy route promotion path is still wired"
+log "Route promotion path is still wired under add route"
 (
   cd "$DATA"
   if "$BIN" add route 1 from missing-route-observations.tsv >legacy.out 2>&1; then
-    fail "legacy route promotion unexpectedly succeeded"
+    fail "route promotion unexpectedly succeeded"
   fi
   assert_file_contains legacy.out "missing-route-observations.tsv"
 )
