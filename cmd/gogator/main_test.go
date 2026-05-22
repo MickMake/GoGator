@@ -140,6 +140,22 @@ func TestExportRawRecognized(t *testing.T) {
 	}
 }
 
+func TestDBBackupAndVacuumRecognized(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := run([]string{"db", "init"}); err != nil {
+		t.Fatalf("db init: %v", err)
+	}
+	if err := run([]string{"db", "backup", "as", "backup.sqlite"}); err != nil {
+		t.Fatalf("db backup: %v", err)
+	}
+	if _, err := os.Stat("backup.sqlite"); err != nil {
+		t.Fatalf("backup missing: %v", err)
+	}
+	if err := run([]string{"db", "vacuum"}); err != nil {
+		t.Fatalf("db vacuum: %v", err)
+	}
+}
+
 func TestExportRecognized(t *testing.T) {
 	err := run([]string{"export", "trips", "during", "2026", "as", "trips.tsv"})
 	if err == nil || !strings.Contains(err.Error(), "not implemented yet: export trips") {
