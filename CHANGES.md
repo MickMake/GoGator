@@ -2,6 +2,7 @@
 
 ## v0.26
 
+- Added SQLite Run 2 site commands: `import sites`, `export sites`, `add site`, and `delete site` (SQLite-backed).
 - Added SQLite foundation with a new internal store package and default database path `gogator.sqlite`.
 - Implemented `gogator db init` to create the SQLite database schema and indexes idempotently.
 - Implemented `gogator db status` to report database path, SQLite version, and core table counts (`gps_points`, `sites`, `routes`, `processing_runs`, `trips`, `issues`).
@@ -79,3 +80,5 @@
 - Preserved silent stop gap handling.
 - Preserved noisy/observed GPS output rather than replacing it with canonical site GPS.
 - Preserved destination dwell validation, stationary teleport guard, same-site micro-trip suppression, route observations, and route anomalies.
+
+- Implemented SQLite-backed site commands: import sites, export sites, add site, delete site.
