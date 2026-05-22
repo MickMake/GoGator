@@ -168,12 +168,19 @@ func gpsExportParamKeys(db *sql.DB) ([]string, error) {
 		return nil, err
 	}
 
-	keys := make([]string, 0, len(seen))
-	for key := range seen {
-		keys = append(keys, key)
+	ordered := make([]string, 0, len(seen))
+	for _, key := range gps.ParamOrder {
+		ordered = append(ordered, key)
+		delete(seen, key)
 	}
-	sort.Strings(keys)
-	return keys, nil
+
+	unknown := make([]string, 0, len(seen))
+	for key := range seen {
+		unknown = append(unknown, key)
+	}
+	sort.Strings(unknown)
+	ordered = append(ordered, unknown...)
+	return ordered, nil
 }
 
 func decodeGPSParams(paramsJSON string) (map[string]string, error) {
