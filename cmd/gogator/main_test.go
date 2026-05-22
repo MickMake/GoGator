@@ -56,18 +56,25 @@ func TestGPSParamsSettingsStubsRecognized(t *testing.T) {
 	}
 }
 
-func TestImportGPSRecognized(t *testing.T) {
+func TestImportRawRecognized(t *testing.T) {
 	t.Chdir(t.TempDir())
 	_ = run([]string{"db", "init"})
 	csvData := "dt,lat,lng,altitude,angle,speed,params\n2026-05-01 00:00:00,-33.0,151.0,10,90,42,io1=1\n"
-	if err := os.WriteFile("gps.csv", []byte(csvData), 0o644); err != nil {
+	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := run([]string{"import", "gps", "from", "gps.csv"}); err != nil {
-		t.Fatalf("import gps from: %v", err)
+	if err := run([]string{"import", "raw", "from", "raw.csv"}); err != nil {
+		t.Fatalf("import raw from: %v", err)
 	}
-	if err := run([]string{"import", "gps", "gps.csv"}); err != nil {
-		t.Fatalf("import gps direct: %v", err)
+	if err := run([]string{"import", "raw", "raw.csv"}); err != nil {
+		t.Fatalf("import raw direct: %v", err)
+	}
+}
+
+func TestImportGPSRejected(t *testing.T) {
+	err := run([]string{"import", "gps", "from", "raw.csv"})
+	if err == nil || !strings.Contains(err.Error(), "import gps is not a command; use import raw") {
+		t.Fatalf("got %v", err)
 	}
 }
 
@@ -75,11 +82,11 @@ func TestExportGPSRecognized(t *testing.T) {
 	t.Chdir(t.TempDir())
 	_ = run([]string{"db", "init"})
 	csvData := "dt,lat,lng,altitude,angle,speed,params\n2026-05-01 00:00:00,-33.0,151.0,10,90,42,zeta=9,alpha=1\n"
-	if err := os.WriteFile("gps.csv", []byte(csvData), 0o644); err != nil {
+	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := run([]string{"import", "gps", "from", "gps.csv"}); err != nil {
-		t.Fatalf("import gps: %v", err)
+	if err := run([]string{"import", "raw", "from", "raw.csv"}); err != nil {
+		t.Fatalf("import raw: %v", err)
 	}
 	if err := run([]string{"export", "gps", "as", "gps.tsv"}); err != nil {
 		t.Fatalf("export gps: %v", err)
@@ -93,6 +100,13 @@ func TestExportGPSRecognized(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Fatalf("export missing %q in:\n%s", want, text)
 		}
+	}
+}
+
+func TestExportRawStubRecognized(t *testing.T) {
+	err := run([]string{"export", "raw", "as", "raw.csv"})
+	if err == nil || !strings.Contains(err.Error(), "not implemented yet: export raw") {
+		t.Fatalf("got %v", err)
 	}
 }
 
