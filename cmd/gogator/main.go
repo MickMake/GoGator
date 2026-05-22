@@ -278,7 +278,19 @@ func exportCmd(args []string) error {
 	}
 	switch args[0] {
 	case "raw":
-		return fmt.Errorf("not implemented yet: export raw")
+		path := "raw.csv"
+		if len(args) > 1 {
+			p, err := parseOptionalAsFile("raw", args[1:])
+			if err != nil {
+				return err
+			}
+			path = p
+		}
+		if err := store.ExportRaw(path); err != nil {
+			return fmt.Errorf("export raw: %w", err)
+		}
+		fmt.Printf("exported raw to %s\n", path)
+		return nil
 	case "gps":
 		path := "gps.tsv"
 		if len(args) > 1 {
@@ -421,7 +433,7 @@ Commands:
   import sites [from] <file>                   Import site definitions.
   import routes [from] <file>                  Import directional route definitions.
 
-  export raw [[as] file]                       Planned: export round-trippable raw tracker rows.
+  export raw [[as] file]                       Export round-trippable raw tracker rows.
   export gps [[as] file]                       Export clean GPS tracker rows.
   export sites [[as] file]                     Export site definitions.
   export routes [[as] file]                    Export directional route definitions.
@@ -433,7 +445,7 @@ Commands:
 
   set gps params <param[,param...]>            Planned: set GPS export param columns.
   show gps params                              Planned: show GPS export param columns.
-  reset gps params                             Planned: reset GPS export param columns.
+  reset gps params                             Planned: reset GPS export params to default behaviour.
 
   add site <name/value pairs>                  Add or replace one site.
   add route <name/value pairs>                 Add or replace one route.
