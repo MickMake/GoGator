@@ -108,6 +108,12 @@ func queryCount(db *sql.DB, table string, out *int64) error {
 }
 
 var schemaStatements = []string{
+	`CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);`,
+
 	`CREATE TABLE IF NOT EXISTS gps_points (
     id INTEGER PRIMARY KEY,
     point_hash TEXT NOT NULL UNIQUE,
