@@ -136,13 +136,7 @@ func add(args []string) error {
 			return err
 		}
 		pairs, _ := pairsMap(args[1:])
-		if err := store.UpsertRoute(store.RouteRecord{
-			FromSite:   pairs["from"],
-			ToSite:     pairs["to"],
-			Name:       pairs["name"],
-			Confidence: pairs["confidence"],
-			Notes:      pairs["notes"],
-		}); err != nil {
+		if err := store.UpsertRoute(store.RouteRecord{FromSite: pairs["from"], ToSite: pairs["to"], Name: pairs["name"], Confidence: pairs["confidence"], Notes: pairs["notes"]}); err != nil {
 			return err
 		}
 		fmt.Printf("upserted route: %s -> %s\n", pairs["from"], pairs["to"])
@@ -250,7 +244,21 @@ func exportCmd(args []string) error {
 		return fmt.Errorf("%w: usage: gogator export <gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
 	}
 	switch args[0] {
-	case "gps", "trips", "jitter", "stats", "issues", "paths":
+	case "gps":
+		path := "gps.tsv"
+		if len(args) > 1 {
+			p, err := parseOptionalAsFile("gps", args[1:])
+			if err != nil {
+				return err
+			}
+			path = p
+		}
+		if err := store.ExportGPS(path); err != nil {
+			return fmt.Errorf("export gps: %w", err)
+		}
+		fmt.Printf("exported gps to %s\n", path)
+		return nil
+	case "trips", "jitter", "stats", "issues", "paths":
 		return fmt.Errorf("not implemented yet: export %s", args[0])
 	case "routes":
 		path := "routes.tsv"
@@ -378,7 +386,7 @@ Commands:
   import sites [from] <file>                   Import site definitions.
   import routes [from] <file>                  Import directional route definitions.
 
-  export gps [date] [[as] file]                Planned: export GPS tracker points.
+  export gps [[as] file]                       Export raw GPS tracker rows.
   export sites [[as] file]                     Export site definitions.
   export routes [[as] file]                    Export directional route definitions.
   export trips [date] [[as] file]              Planned: export processed trips.
@@ -403,6 +411,7 @@ Examples:
   %[1]s process raw.csv --timezone Australia/Sydney
   %[1]s db init
   %[1]s import gps from raw.csv
+  %[1]s export gps as gps.tsv
   %[1]s import sites from sites.tsv
   %[1]s import routes from routes.tsv
   %[1]s export sites as sites.tsv
