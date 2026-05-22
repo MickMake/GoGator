@@ -56,7 +56,8 @@ log "Build CLI with vendored dependencies"
 
 log "Show command help"
 commands_output="$($BIN commands)"
-assert_contains "$commands_output" "import gps [from] <file...>" "commands help"
+assert_contains "$commands_output" "import raw [from] <file...>" "commands help"
+assert_contains "$commands_output" "export raw [[as] file]" "commands help"
 assert_contains "$commands_output" "export gps [[as] file]" "commands help"
 assert_contains "$commands_output" "set gps params" "commands help"
 assert_contains "$commands_output" "export routes" "commands help"
@@ -85,22 +86,35 @@ log "Check GPS param settings stubs are recognised"
   assert_file_contains reset-params.out "not implemented yet: reset gps params"
 )
 
-log "Import GPS CSV, export clean flattened GPS, and verify idempotent row count"
-cat > "$DATA/gps-a.csv" <<'CSV'
+log "Check renamed raw import command and raw export stub"
+(
+  cd "$DATA"
+  if "$BIN" import gps from gps-a.csv >import-gps.out 2>&1; then
+    fail "import gps unexpectedly succeeded"
+  fi
+  assert_file_contains import-gps.out "import gps is not a command; use import raw"
+  if "$BIN" export raw as raw.csv >export-raw.out 2>&1; then
+    fail "export raw unexpectedly succeeded"
+  fi
+  assert_file_contains export-raw.out "not implemented yet: export raw"
+)
+
+log "Import raw CSV, export clean flattened GPS, and verify idempotent row count"
+cat > "$DATA/raw-a.csv" <<'CSV'
 dt,lat,lng,altitude,angle,speed,params
 2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1,io1=1
 2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,alpha=2,io1=0
 CSV
 (
   cd "$DATA"
-  import_output="$($BIN import gps from gps-a.csv)"
-  assert_contains "$import_output" "imported gps files: 1" "gps import"
-  assert_contains "$import_output" "new gps points: 2" "gps import"
-  assert_contains "$import_output" "new gps point sources: 2" "gps import"
+  import_output="$($BIN import raw from raw-a.csv)"
+  assert_contains "$import_output" "imported raw files: 1" "raw import"
+  assert_contains "$import_output" "new gps points: 2" "raw import"
+  assert_contains "$import_output" "new gps point sources: 2" "raw import"
 
-  repeat_output="$($BIN import gps gps-a.csv)"
-  assert_contains "$repeat_output" "new gps points: 0" "gps duplicate import"
-  assert_contains "$repeat_output" "new gps point sources: 0" "gps duplicate import"
+  repeat_output="$($BIN import raw raw-a.csv)"
+  assert_contains "$repeat_output" "new gps points: 0" "raw duplicate import"
+  assert_contains "$repeat_output" "new gps point sources: 0" "raw duplicate import"
 
   $BIN export gps as exported-gps.tsv
   assert_file_contains exported-gps.tsv $'Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\tgpslev\tgsmlev\tpdop\tio1'
@@ -113,7 +127,7 @@ CSV
   assert_file_not_contains exported-gps.tsv "Seen Count"
 
   status_output="$($BIN db status)"
-  assert_contains "$status_output" "gps_points: 2" "db status after gps import"
+  assert_contains "$status_output" "gps_points: 2" "db status after raw import"
 )
 
 log "Import/export sites with blank TSV fields"
