@@ -41,6 +41,12 @@ func run(args []string) error {
 		return add(args[1:])
 	case "delete":
 		return deleteCmd(args[1:])
+	case "set":
+		return setCmd(args[1:])
+	case "show":
+		return showCmd(args[1:])
+	case "reset":
+		return resetCmd(args[1:])
 	case "import":
 		return importCmd(args[1:])
 	case "export":
@@ -174,6 +180,31 @@ func deleteCmd(args []string) error {
 	default:
 		return fmt.Errorf("%w: unknown delete target: %s", errUsage, args[0])
 	}
+}
+
+func setCmd(args []string) error {
+	if isGPSParamsCommand(args) {
+		return fmt.Errorf("not implemented yet: set gps params")
+	}
+	return fmt.Errorf("%w: usage: gogator set gps params <param[,param...]>", errUsage)
+}
+
+func showCmd(args []string) error {
+	if isGPSParamsCommand(args) {
+		return fmt.Errorf("not implemented yet: show gps params")
+	}
+	return fmt.Errorf("%w: usage: gogator show gps params", errUsage)
+}
+
+func resetCmd(args []string) error {
+	if isGPSParamsCommand(args) {
+		return fmt.Errorf("not implemented yet: reset gps params")
+	}
+	return fmt.Errorf("%w: usage: gogator reset gps params", errUsage)
+}
+
+func isGPSParamsCommand(args []string) bool {
+	return len(args) >= 2 && args[0] == "gps" && args[1] == "params"
 }
 
 func importCmd(args []string) error {
@@ -395,6 +426,10 @@ Commands:
   export issues [date] [[as] file]             Planned: export review/problem rows.
   export paths [route/date] [[as] file]        Planned: export trip/route waypoint evidence.
 
+  set gps params <param[,param...]>            Planned: set GPS export param columns.
+  show gps params                              Planned: show GPS export param columns.
+  reset gps params                             Planned: reset GPS export param columns.
+
   add site <name/value pairs>                  Add or replace one site.
   add route <name/value pairs>                 Add or replace one route.
   add route <index> from <stats.csv|tsv>       Promote one observed route into routes.csv.
@@ -412,6 +447,7 @@ Examples:
   %[1]s db init
   %[1]s import gps from raw.csv
   %[1]s export gps as gps.tsv
+  %[1]s set gps params io66,io67,io200
   %[1]s import sites from sites.tsv
   %[1]s import routes from routes.tsv
   %[1]s export sites as sites.tsv
