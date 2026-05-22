@@ -71,6 +71,23 @@ func TestLoadGatorRecognized(t *testing.T) {
 	}
 }
 
+func TestGoogleVendorStubsRecognized(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"load", "google", "from", "google.json"}, "not implemented yet: load google"},
+		{[]string{"load", "google", "google.json"}, "not implemented yet: load google"},
+		{[]string{"dump", "google", "as", "google.json"}, "not implemented yet: dump google"},
+		{[]string{"dump", "google", "google.json"}, "not implemented yet: dump google"},
+	} {
+		err := run(tc.args)
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%v got %v", tc.args, err)
+		}
+	}
+}
+
 func TestImportRawRejected(t *testing.T) {
 	err := run([]string{"import", "raw", "from", "raw.csv"})
 	if err == nil || !strings.Contains(err.Error(), "unknown import target: raw") {
