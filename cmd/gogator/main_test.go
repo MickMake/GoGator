@@ -103,10 +103,40 @@ func TestExportGPSRecognized(t *testing.T) {
 	}
 }
 
-func TestExportRawStubRecognized(t *testing.T) {
-	err := run([]string{"export", "raw", "as", "raw.csv"})
-	if err == nil || !strings.Contains(err.Error(), "not implemented yet: export raw") {
-		t.Fatalf("got %v", err)
+func TestExportRawRecognized(t *testing.T) {
+	t.Chdir(t.TempDir())
+
+	_ = run([]string{"db", "init"})
+
+	csvData := "dt,lat,lng,altitude,angle,speed,params\n" +
+		"2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1\n"
+
+	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := run([]string{"import", "raw", "from", "raw.csv"}); err != nil {
+		t.Fatalf("import raw: %v", err)
+	}
+
+	if err := run([]string{"export", "raw", "as", "exported-raw.csv"}); err != nil {
+		t.Fatalf("export raw: %v", err)
+	}
+
+	data, err := os.ReadFile("exported-raw.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	text := string(data)
+
+	for _, want := range []string{
+		"dt,lat,lng,altitude,angle,speed,params",
+		`2026-05-01 00:00:00,-33,151,10,90,42,"zeta=9,alpha=1"`,
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("export raw missing %q in:\n%s", want, text)
+		}
 	}
 }
 

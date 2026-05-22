@@ -2,6 +2,11 @@
 
 ## v0.26
 
+- Implemented `gogator export raw`, writing tracker-style CSV with columns `dt,lat,lng,altitude,angle,speed,params`.
+- Wired `export raw [[as] file]` through the CLI and updated help wording from planned to implemented.
+- Added raw export tests covering CSV shape, preserved raw params, deterministic row order, and re-import safety.
+- Added smoke coverage for raw CSV export and re-import.
+- Documented that raw export currently preserves semantic numeric values, not exact original decimal formatting, because SQLite stores parsed floats.
 - Added SQLite Run 2 site commands: `import sites`, `export sites`, `add site`, and `delete site` (SQLite-backed).
 - Added SQLite foundation with a new internal store package and default database path `gogator.sqlite`.
 - Implemented `gogator db init` to create the SQLite database schema and indexes idempotently.

@@ -101,6 +101,52 @@ func TestImportGPSRecordsSecondSourceForSamePoint(t *testing.T) {
 	}
 }
 
+func TestExportRawWritesRoundTrippableTrackerCSV(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := Init(DefaultPath); err != nil {
+		t.Fatal(err)
+	}
+
+	csvData := "dt,lat,lng,altitude,angle,speed,params\n" +
+		"2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1,io1=1\n" +
+		"2026-05-01 00:01:00,-33.100000,151.100000,11,91,43,alpha=2,io1=0\n"
+	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ImportGPS([]string{"raw.csv"}, time.UTC, config.Default()); err != nil {
+		t.Fatalf("import raw: %v", err)
+	}
+	if err := ExportRaw("exported-raw.csv"); err != nil {
+		t.Fatalf("export raw: %v", err)
+	}
+
+	f, err := os.Open("exported-raw.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	rows, err := r.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := [][]string{
+		{"dt", "lat", "lng", "altitude", "angle", "speed", "params"},
+		{"2026-05-01 00:00:00", "-33", "151", "10", "90", "42", "zeta=9,alpha=1,io1=1"},
+		{"2026-05-01 00:01:00", "-33.1", "151.1", "11", "91", "43", "alpha=2,io1=0"},
+	}
+	if !reflect.DeepEqual(rows, want) {
+		t.Fatalf("unexpected raw export\nwant: %#v\n got: %#v", want, rows)
+	}
+
+	if _, err := ImportGPS([]string{"exported-raw.csv"}, time.UTC, config.Default()); err != nil {
+		t.Fatalf("re-import exported raw: %v", err)
+	}
+}
+
 func TestExportGPSUsesDocumentedParamOrderWithoutMetadata(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if err := Init(DefaultPath); err != nil {

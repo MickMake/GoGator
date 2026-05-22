@@ -17,7 +17,7 @@ gogator import raw from tracker.csv
 Planned commands/behaviour:
 
 ```bash
-gogator import raw from tracker.tsv
+gogator import raw from tracker.csv
 gogator export raw as tracker.csv
 ```
 
@@ -28,6 +28,7 @@ Rules:
 - `import raw` ingests original Gator/Teltonika tracker CSV exports.
 - Gator tracker exports are plain CSV.
 - `import raw` should also accept TSV input.
+- `export raw` exports tracker-style CSV columns: `dt,lat,lng,altitude,angle,speed,params`.
 - `export raw` must export a round-trippable raw file.
 - A raw CSV exported by GoGator should be suitable for importing again with `import raw`.
 - For CSV source data, the intended ideal is:
@@ -43,6 +44,7 @@ Notes:
 - Preserve original raw fields and field ordering where possible.
 - Avoid adding source metadata, audit columns, or GoGator-only columns to `export raw`.
 - If exact byte-for-byte preservation proves impossible because of CSV quoting/newline differences, document the exact limitation and preserve semantic equality. The goal remains zero diff for normal Gator CSV exports.
+- Current SQLite stores GPS numeric values as floats, so exported raw numeric formatting is semantic rather than byte-for-byte identical to the original imported text.
 
 ### Clean GPS data
 
@@ -103,8 +105,6 @@ Not implemented yet:
 
 ```bash
 gogator process gps ...
-gogator import raw from tracker.tsv
-gogator export raw ...
 gogator export trips ...
 gogator export jitter ...
 gogator export stats ...

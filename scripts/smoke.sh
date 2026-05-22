@@ -69,21 +69,13 @@ log "Initialise database"
   assert_contains "$init_output" "initialised database" "db init"
 )
 
-log "Check GPS param settings stubs are recognised"
+log "Check renamed raw import command"
 (
   cd "$DATA"
-  if "$BIN" set gps params io66,io67 >set-params.out 2>&1; then
-    fail "set gps params unexpectedly succeeded"
+  if "$BIN" import gps from gps-a.csv >import-gps.out 2>&1; then
+    fail "import gps unexpectedly succeeded"
   fi
-  assert_file_contains set-params.out "not implemented yet: set gps params"
-  if "$BIN" show gps params >show-params.out 2>&1; then
-    fail "show gps params unexpectedly succeeded"
-  fi
-  assert_file_contains show-params.out "not implemented yet: show gps params"
-  if "$BIN" reset gps params >reset-params.out 2>&1; then
-    fail "reset gps params unexpectedly succeeded"
-  fi
-  assert_file_contains reset-params.out "not implemented yet: reset gps params"
+  assert_file_contains import-gps.out "import gps is not a command; use import raw"
 )
 
 log "Check renamed raw import command and raw export stub"
@@ -99,7 +91,8 @@ log "Check renamed raw import command and raw export stub"
   assert_file_contains export-raw.out "not implemented yet: export raw"
 )
 
-log "Import raw CSV, export clean flattened GPS, and verify idempotent row count"
+log "Import raw CSV, export raw CSV, export clean flattened GPS, and verify idempotent row count"
+
 cat > "$DATA/raw-a.csv" <<'CSV'
 dt,lat,lng,altitude,angle,speed,params
 2026-05-01 00:00:00,-33.000000,151.000000,10,90,42,zeta=9,alpha=1,io1=1
@@ -115,6 +108,13 @@ CSV
   repeat_output="$($BIN import raw raw-a.csv)"
   assert_contains "$repeat_output" "new gps points: 0" "raw duplicate import"
   assert_contains "$repeat_output" "new gps point sources: 0" "raw duplicate import"
+  $BIN export raw as exported-raw.csv
+  assert_file_contains exported-raw.csv "dt,lat,lng,altitude,angle,speed,params"
+  assert_file_contains exported-raw.csv '2026-05-01 00:00:00,-33,151,10,90,42,"zeta=9,alpha=1,io1=1"'
+  assert_file_contains exported-raw.csv '2026-05-01 00:01:00,-33.1,151.1,11,91,43,"alpha=2,io1=0"'
+
+  raw_reimport_output="$($BIN import raw exported-raw.csv)"
+  assert_contains "$raw_reimport_output" "new gps points: 0" "raw export re-import"
 
   $BIN export gps as exported-gps.tsv
   assert_file_contains exported-gps.tsv $'Raw DT\tNormalised Time\tLat\tLng\tAltitude\tAngle\tSpeed KPH\tgpslev\tgsmlev\tpdop\tio1'
