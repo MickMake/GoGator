@@ -31,6 +31,27 @@ Outputs:
 <input>_audit.csv
 ```
 
+### `gogator load gator [from] <file...>`
+
+Intent: load Gator/Teltonika tracker CSV or TSV rows into the SQLite database.
+
+Examples:
+
+```bash
+gogator load gator from 2026-04_raw.csv
+gogator load gator 2026-04_raw.csv
+```
+
+### `gogator dump gator [[as] file]`
+
+Intent: dump SQLite GPS rows back out as a Gator-compatible tracker CSV.
+
+Example:
+
+```bash
+gogator dump gator as tracker-backup.csv
+```
+
 ### `gogator add route <index> from <route_observations.csv>`
 
 Intent: promote an indexed observed route to `routes.csv`.
@@ -53,15 +74,17 @@ Example:
 gogator commands
 ```
 
-## Planned SQLite-backed commands
-
-These commands are recognised by the CLI but will be implemented in staged SQLite work:
+## SQLite-backed commands
 
 ```bash
 gogator db init
 gogator db status
+gogator db backup as gogator-backup.sqlite
+gogator db vacuum
 
-gogator import raw from 2026-04_raw.csv
+gogator load gator from 2026-04_raw.csv
+gogator dump gator as 2026-04_gator.csv
+
 gogator import sites from sites.tsv
 gogator import routes from routes.tsv
 
