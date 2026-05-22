@@ -44,6 +44,7 @@ Notes:
 - Avoid adding source metadata, audit columns, or GoGator-only columns to `export raw`.
 - If exact byte-for-byte preservation proves impossible because of CSV quoting/newline differences, document the exact limitation and preserve semantic equality. The goal remains zero diff for normal Gator CSV exports.
 - Current SQLite stores GPS numeric values as floats, so exported raw numeric formatting is semantic rather than byte-for-byte identical to the original imported text.
+- The accepted current raw-export representation is accurate even when float formatting drops trailing zeroes and parameter order differs from the source file.
 
 ### Clean GPS data
 
@@ -64,6 +65,21 @@ Current rules:
 - Does not include audit/source metadata.
 - Does not include `params_raw` or `params_json`.
 - Is not currently intended to be a round-trip import format.
+
+## Database administration
+
+Implemented commands:
+
+```bash
+gogator db backup as gogator-backup.sqlite
+gogator db vacuum
+```
+
+Current rules:
+
+- `db backup` creates a new SQLite backup file using SQLite `VACUUM INTO`.
+- `db backup` refuses to overwrite an existing destination file.
+- `db vacuum` compacts the existing default database in place.
 
 ## Settings foundation
 
@@ -109,8 +125,6 @@ gogator export jitter ...
 gogator export stats ...
 gogator export issues ...
 gogator export paths ...
-gogator db backup
-gogator db vacuum
 gogator set gps params ...
 gogator show gps params
 gogator reset gps params
