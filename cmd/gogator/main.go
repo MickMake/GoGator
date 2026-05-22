@@ -37,8 +37,6 @@ func run(args []string) error {
 	switch args[0] {
 	case "process":
 		return process(args[1:])
-	case "add_route":
-		return fmt.Errorf("add_route has been replaced by: gogator add route")
 	case "add":
 		return add(args[1:])
 	case "delete":
