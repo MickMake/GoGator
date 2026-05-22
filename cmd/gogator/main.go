@@ -209,15 +209,17 @@ func isGPSParamsCommand(args []string) bool {
 
 func importCmd(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("%w: usage: gogator import <gps|sites|routes> ...", errUsage)
+		return fmt.Errorf("%w: usage: gogator import <raw|sites|routes> ...", errUsage)
 	}
 	switch args[0] {
-	case "gps":
-		paths, err := parseFileArgs("gps", args[1:])
+	case "raw":
+		paths, err := parseFileArgs("raw", args[1:])
 		if err != nil {
 			return err
 		}
-		return importGPS(paths)
+		return importRaw(paths)
+	case "gps":
+		return fmt.Errorf("%w: import gps is not a command; use import raw", errUsage)
 	case "routes":
 		path, err := parseFileArg("routes", args[1:])
 		if err != nil {
@@ -247,7 +249,7 @@ func importCmd(args []string) error {
 	}
 }
 
-func importGPS(paths []string) error {
+func importRaw(paths []string) error {
 	cfg, err := config.Load(app.DefaultConfigPath())
 	if err != nil {
 		return err
@@ -261,9 +263,9 @@ func importGPS(paths []string) error {
 	}
 	result, err := store.ImportGPS(paths, loc, cfg)
 	if err != nil {
-		return fmt.Errorf("import gps: %w", err)
+		return fmt.Errorf("import raw: %w", err)
 	}
-	fmt.Printf("imported gps files: %d\n", result.Files)
+	fmt.Printf("imported raw files: %d\n", result.Files)
 	fmt.Printf("raw gps rows read: %d\n", result.RawRows)
 	fmt.Printf("new gps points: %d\n", result.GPSPoints)
 	fmt.Printf("new gps point sources: %d\n", result.SourceRows)
@@ -272,9 +274,11 @@ func importGPS(paths []string) error {
 
 func exportCmd(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("%w: usage: gogator export <gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
+		return fmt.Errorf("%w: usage: gogator export <raw|gps|sites|routes|trips|jitter|stats|issues|paths> ...", errUsage)
 	}
 	switch args[0] {
+	case "raw":
+		return fmt.Errorf("not implemented yet: export raw")
 	case "gps":
 		path := "gps.tsv"
 		if len(args) > 1 {
@@ -413,11 +417,12 @@ Commands:
   db backup ...                                Planned: backup database.
   db vacuum                                    Planned: compact database.
 
-  import gps [from] <file...>                  Import GPS tracker CSV rows into the database.
+  import raw [from] <file...>                  Import raw tracker CSV/TSV rows into the database.
   import sites [from] <file>                   Import site definitions.
   import routes [from] <file>                  Import directional route definitions.
 
-  export gps [[as] file]                       Export raw GPS tracker rows.
+  export raw [[as] file]                       Planned: export round-trippable raw tracker rows.
+  export gps [[as] file]                       Export clean GPS tracker rows.
   export sites [[as] file]                     Export site definitions.
   export routes [[as] file]                    Export directional route definitions.
   export trips [date] [[as] file]              Planned: export processed trips.
@@ -445,7 +450,8 @@ Examples:
   %[1]s process raw.csv
   %[1]s process raw.csv --timezone Australia/Sydney
   %[1]s db init
-  %[1]s import gps from raw.csv
+  %[1]s import raw from raw.csv
+  %[1]s export raw as raw.csv
   %[1]s export gps as gps.tsv
   %[1]s set gps params io66,io67,io200
   %[1]s import sites from sites.tsv
