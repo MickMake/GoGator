@@ -74,7 +74,7 @@ func upsertGPSPointTx(tx *sql.Tx, point gps.RawPoint) (int64, bool, error) {
 	}
 
 	res, err := tx.Exec(`INSERT OR IGNORE INTO gps_points(point_hash,first_source_file,first_raw_row,last_source_file,last_raw_row,seen_count,raw_dt,normalised_time,lat,lng,altitude,angle,speed_kph,params_raw,params_json)
-VALUES(?,?,?,?,1,?, ?,?,?,?,?,?,?,?,?)`,
+VALUES(?,?,?,?,?,1,?,?,?,?,?,?,?,?,?)`,
 		hash,
 		point.SourceFile,
 		point.RawRow,
