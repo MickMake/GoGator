@@ -14,7 +14,7 @@ gogator process <raw-gps.csv> <more-raw-gps.csv> ...
 Optional overrides:
 
 ```bash
-gogator process <raw-gps.csv> --timezone Australia/Sydney --config gogator.yaml --sites addresses.csv --routes routes.csv
+gogator process <raw-gps.csv> --timezone Australia/Sydney --config gogator.yaml --sites sites.csv --routes routes.csv
 ```
 
 Extended command help:
@@ -29,10 +29,10 @@ gogator add route 3 from 2026-04_route_observations.csv
 ## Defaults
 
 - `config` defaults to `gogator.yaml`.
-- `sites` defaults to the config value, otherwise `addresses.csv`.
+- `sites` defaults to the config value, otherwise `sites.csv`.
 - `routes` defaults to the config value, otherwise `routes.csv`.
 - timezone priority is `--timezone`, then `GOGATOR_TIMEZONE`, then config, then `Australia/Sydney`.
-- if `addresses.csv` or `routes.csv` are not found in the current working directory, the app also checks beside each input raw GPS file.
+- if `sites.csv` or `routes.csv` are not found in the current working directory, the app also checks beside each input raw GPS file.
 
 ## Commands
 
@@ -45,7 +45,7 @@ Examples:
 ```bash
 gogator process 2026-04_raw.csv
 gogator process 2026-04_raw.csv 2026-05_raw.csv 2026-06_raw.csv
-gogator process exports/2026-04_raw.csv --config gogator.yaml --sites addresses.csv --routes routes.csv
+gogator process exports/2026-04_raw.csv --config gogator.yaml --sites sites.csv --routes routes.csv
 ```
 
 ### `gogator add route <index> from <route_observations.csv>`
@@ -81,9 +81,9 @@ Home Sweet Home,"28 New Line Rd, West Pennant Hills NSW 2125, Australia","-33.74
 
 `Range` is metres. If blank, the config default radius is used.
 
-The processor matches the nearest site within that row's radius and writes the actual `Site` value from `addresses.csv`, e.g. `Home Sweet Home`, not just `Home`.
+The processor matches the nearest site within that row's radius and writes the actual `Site` value from `sites.csv`, e.g. `Home Sweet Home`, not just `Home`.
 
-Important GPS output rule: matched sites keep the observed/noisy GPS coordinate from the tracker row or cluster. GoGator does **not** replace output GPS values with canonical GPS from `addresses.csv`.
+Important GPS output rule: matched sites keep the observed/noisy GPS coordinate from the tracker row or cluster. GoGator does **not** replace output GPS values with canonical GPS from `sites.csv`.
 
 Supported dwell aliases:
 

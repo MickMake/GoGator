@@ -11,7 +11,7 @@ Examples:
 ```bash
 gogator process 2026-04_raw.csv
 gogator process 2026-04_raw.csv --timezone Australia/Sydney
-gogator process exports/2026-04_raw.csv --config gogator.yaml --sites addresses.csv --routes routes.csv
+gogator process exports/2026-04_raw.csv --config gogator.yaml --sites sites.csv --routes routes.csv
 ```
 
 Design notes:

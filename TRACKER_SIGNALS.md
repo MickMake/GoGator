@@ -104,4 +104,4 @@ Do not discard these just because they are not always needed for trip segmentati
 
 ## Debugging value
 
-The observed GPS coordinate that matched a site is valuable because it shows exactly what the tracker reported and what GoGator accepted. Replacing it with the canonical site coordinate would hide useful debugging evidence and duplicate information already present in `addresses.csv`.
+The observed GPS coordinate that matched a site is valuable because it shows exactly what the tracker reported and what GoGator accepted. Replacing it with the canonical site coordinate would hide useful debugging evidence and duplicate information already present in `sites.csv`.

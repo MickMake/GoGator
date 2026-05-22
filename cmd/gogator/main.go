@@ -295,7 +295,7 @@ Command families:
   process
     Intent: Convert raw Gator/Teltonika GPS CSV exports into spreadsheet-ready trip logs.
     Current:
-      %[1]s process <gps.csv...> [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]
+      %[1]s process <gps.csv...> [--timezone Australia/Sydney] [--config gogator.yaml] [--sites sites.csv] [--routes routes.csv]
     Planned:
       %[1]s process gps during 2026
       %[1]s process gps from 2026 to 2027
@@ -361,7 +361,7 @@ Command families:
 
 func processHelp() {
 	fmt.Printf(`Usage:
-  %[1]s process <raw-gps.csv> [more-raw-gps.csv ...] [--timezone Australia/Sydney] [--config gogator.yaml] [--sites addresses.csv] [--routes routes.csv]
+  %[1]s process <raw-gps.csv> [more-raw-gps.csv ...] [--timezone Australia/Sydney] [--config gogator.yaml] [--sites sites.csv] [--routes routes.csv]
 
 Intent:
   Process one or more raw GPS CSV files using the current file-based workflow.

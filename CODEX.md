@@ -56,7 +56,7 @@ Naive raw timestamps are parsed as UTC, corrected, then rendered in the target t
 
 ## Site matching
 
-`addresses.csv` may be CSV or TSV as the current file-based site source. Delimiter detection must use the header row because addresses and GPS fields contain commas.
+`sites.csv` may be CSV or TSV as the current file-based site source. Delimiter detection must use the header row because addresses and GPS fields contain commas.
 
 Required columns:
 

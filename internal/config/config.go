@@ -59,7 +59,7 @@ type RawTime struct {
 func Default() Config {
 	return Config{
 		Timezone: "Australia/Sydney",
-		Sites:    "addresses.csv",
+		Sites:    "sites.csv",
 		Routes:   "routes.csv",
 		Trip: TripDetection{
 			MovingSpeedKPH:                     7,

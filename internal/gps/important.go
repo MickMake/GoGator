@@ -6,7 +6,7 @@ import (
 )
 
 // CollapseToImportantSites turns the raw trip chain into the business-useful
-// ledger: travel between sites explicitly marked Important=yes in addresses.csv.
+// ledger: travel between sites explicitly marked Important=yes in sites.csv.
 // Unimportant sites and CHECK rows are treated as pass-through noise and are
 // merged into the next important destination where possible.
 func CollapseToImportantSites(valid []Trip, jitter []Trip, cfg config.Config, siteList []sites.Site) ([]Trip, []Trip) {

@@ -21,7 +21,7 @@ Reads:
 ```text
 raw GPS CSV
 gogator.yaml
-addresses.csv
+sites.csv
 routes.csv
 ```
 
@@ -146,7 +146,7 @@ The tracker can report real data that is not a meaningful travel-log trip. Real 
 
 For each candidate trip:
 
-1. Find nearby sites from `addresses.csv`.
+1. Find nearby sites from `sites.csv`.
 2. Check GPS distance against site radius.
 3. Use sliding-window dwell evidence to confirm the stop.
 4. Choose the best matching site.

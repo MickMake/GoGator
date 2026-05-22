@@ -16,7 +16,7 @@ Gator's processed "drives and stops" exports are not canonical because they have
 
 GoGator enriches raw tracker observations using local reference files:
 
-- `addresses.csv` / TSV: known sites, real addresses, GPS centres, match radii, dwell thresholds.
+- `sites.csv` / TSV: known sites, real addresses, GPS centres, match radii, dwell thresholds.
 - `routes.csv`: approved or expected common routes.
 - `gogator.yaml`: deterministic processing thresholds and defaults.
 
@@ -37,11 +37,11 @@ Avoid losing detail from the source data. In particular:
 
 When a raw point or stationary cluster matches a known site:
 
-- write the matched site name from `addresses.csv`
-- write the real address from `addresses.csv`
+- write the matched site name from `sites.csv`
+- write the real address from `sites.csv`
 - keep the observed tracker GPS coordinate in the trip output
 
-The canonical site GPS already exists in `addresses.csv`. The processed trip table should show what the tracker actually reported.
+The canonical site GPS already exists in `sites.csv`. The processed trip table should show what the tracker actually reported.
 
 ## CHECK is a feature
 

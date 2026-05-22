@@ -14,7 +14,7 @@ Raw GPS CSV is canonical. Do not use Gator's processed drive/stop exports as the
 - Preserve the staged natural-ish command shape shown by `gogator commands`.
 - Preserve stable output columns unless the user explicitly asks for new columns.
 - Keep observed/noisy tracker GPS coordinates in processed output when a site matches.
-- Do not replace processed output GPS with canonical `addresses.csv` coordinates.
+- Do not replace processed output GPS with canonical `sites.csv` coordinates.
 - Prefer durable rules over one-off fixes for individual CHECK rows.
 - Keep routes advisory only. They may annotate or flag, but must not silently rewrite destinations.
 - Treat routes as directional: `A -> B` and `B -> A` are different routes.
@@ -43,7 +43,7 @@ go build -o gogator ./cmd/gogator
 - `internal/app/process.go`: process orchestration, default config resolution, output generation.
 - `internal/gps/read.go`: raw CSV parsing, row numbering, time correction.
 - `internal/gps/trips.go`: movement, stationary clusters, trip building, jitter suppression.
-- `internal/sites/sites.go`: addresses.csv/TSV loading and site matching.
+- `internal/sites/sites.go`: sites.csv/TSV loading and site matching.
 - `internal/routes/routes.go`: route rules, observations, anomalies, route promotion support.
 - `internal/output/csv.go`: output schemas. Treat this as high-stability.
 

@@ -52,7 +52,7 @@ func RunProcess(opts Options) error {
 		cfg.Routes = opts.RoutesPath
 	}
 	if cfg.Sites == "" {
-		cfg.Sites = "addresses.csv"
+		cfg.Sites = "sites.csv"
 	}
 	if cfg.Routes == "" {
 		cfg.Routes = "routes.csv"
