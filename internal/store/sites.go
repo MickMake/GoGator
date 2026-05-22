@@ -164,7 +164,7 @@ func parseSitesFile(path string) ([]SiteRecord, error) {
 	r := csv.NewReader(bytes.NewReader(data))
 	r.Comma = delim
 	r.FieldsPerRecord = -1
-	r.TrimLeadingSpace = true
+	r.TrimLeadingSpace = false
 	rows, err := r.ReadAll()
 	if err != nil {
 		return nil, err
