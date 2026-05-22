@@ -47,6 +47,7 @@ func TestInitCreatesExpectedRun1Schema(t *testing.T) {
 	defer db.Close()
 
 	requireTables(t, db,
+		"settings",
 		"gps_points",
 		"gps_point_sources",
 		"sites",
@@ -58,6 +59,8 @@ func TestInitCreatesExpectedRun1Schema(t *testing.T) {
 		"route_stats",
 		"issues",
 	)
+
+	requireColumns(t, db, "settings", "key", "value", "updated_at")
 
 	requireColumns(t, db, "gps_points",
 		"id", "point_hash", "first_source_file", "first_raw_row", "last_source_file", "last_raw_row",
@@ -248,7 +251,7 @@ func indexColumns(t *testing.T, db *sql.DB, index string) []string {
 		var seqno, cid int
 		var name string
 		if err := rows.Scan(&seqno, &cid, &name); err != nil {
-			t.Fatalf("scan pragma index_info(%q): %v", index, err)
+			t.Fatalf("scan pragma index_info(%q): %v", index)
 		}
 		cols = append(cols, name)
 	}
