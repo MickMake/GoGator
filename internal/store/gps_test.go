@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gogator/internal/config"
+	"gogator/internal/gps"
 )
 
 func TestImportGPSDeduplicatesPointsAndSources(t *testing.T) {
@@ -100,7 +101,7 @@ func TestImportGPSRecordsSecondSourceForSamePoint(t *testing.T) {
 	}
 }
 
-func TestExportGPSFlattensSortedParamsWithoutMetadata(t *testing.T) {
+func TestExportGPSUsesDocumentedParamOrderWithoutMetadata(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if err := Init(DefaultPath); err != nil {
 		t.Fatal(err)
@@ -136,7 +137,9 @@ func TestExportGPSFlattensSortedParamsWithoutMetadata(t *testing.T) {
 		t.Fatalf("want header plus one row, got %d", len(rows))
 	}
 
-	wantHeader := []string{"Raw DT", "Normalised Time", "Lat", "Lng", "Altitude", "Angle", "Speed KPH", "alpha", "io1", "zeta"}
+	wantHeader := append([]string{}, gpsExportCoreHeader...)
+	wantHeader = append(wantHeader, gps.ParamOrder...)
+	wantHeader = append(wantHeader, "alpha", "zeta")
 	if !reflect.DeepEqual(rows[0], wantHeader) {
 		t.Fatalf("unexpected header\nwant: %#v\n got: %#v", wantHeader, rows[0])
 	}
@@ -147,13 +150,20 @@ func TestExportGPSFlattensSortedParamsWithoutMetadata(t *testing.T) {
 			}
 		}
 	}
-	wantRow := []string{"2026-05-01 00:00:00", "2026-05-01T00:00:00Z", "-33", "151", "10", "90", "42", "1", "on", "9"}
-	if !reflect.DeepEqual(rows[1], wantRow) {
-		t.Fatalf("unexpected row\nwant: %#v\n got: %#v", wantRow, rows[1])
+
+	if rows[1][0] != "2026-05-01 00:00:00" || rows[1][1] != "2026-05-01T00:00:00Z" || rows[1][2] != "-33" || rows[1][3] != "151" {
+		t.Fatalf("unexpected core row values: %#v", rows[1][:7])
+	}
+	col := map[string]int{}
+	for i, h := range rows[0] {
+		col[h] = i
+	}
+	if rows[1][col["io1"]] != "on" || rows[1][col["alpha"]] != "1" || rows[1][col["zeta"]] != "9" {
+		t.Fatalf("unexpected param values: %#v", rows[1])
 	}
 }
 
-func TestExportGPSEmptyDBWritesCoreHeaderOnly(t *testing.T) {
+func TestExportGPSEmptyDBWritesCoreHeaderPlusKnownParams(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if err := Init(DefaultPath); err != nil {
 		t.Fatal(err)
@@ -177,7 +187,9 @@ func TestExportGPSEmptyDBWritesCoreHeaderOnly(t *testing.T) {
 	if len(rows) != 1 {
 		t.Fatalf("want header only, got %#v", rows)
 	}
-	if !reflect.DeepEqual(rows[0], gpsExportCoreHeader) {
+	wantHeader := append([]string{}, gpsExportCoreHeader...)
+	wantHeader = append(wantHeader, gps.ParamOrder...)
+	if !reflect.DeepEqual(rows[0], wantHeader) {
 		t.Fatalf("unexpected empty header: %#v", rows[0])
 	}
 }
