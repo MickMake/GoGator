@@ -251,7 +251,7 @@ func indexColumns(t *testing.T, db *sql.DB, index string) []string {
 		var seqno, cid int
 		var name string
 		if err := rows.Scan(&seqno, &cid, &name); err != nil {
-			t.Fatalf("scan pragma index_info(%q): %v", index)
+			t.Fatalf("scan pragma index_info(%q): %v", index, err)
 		}
 		cols = append(cols, name)
 	}
