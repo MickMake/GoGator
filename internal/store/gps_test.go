@@ -1,7 +1,9 @@
 package store
 
 import (
+	"encoding/csv"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -95,5 +97,87 @@ func TestImportGPSRecordsSecondSourceForSamePoint(t *testing.T) {
 	}
 	if seenCount != 2 {
 		t.Fatalf("want seen_count 2, got %d", seenCount)
+	}
+}
+
+func TestExportGPSFlattensSortedParamsWithoutMetadata(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := Init(DefaultPath); err != nil {
+		t.Fatal(err)
+	}
+
+	csvData := "dt,lat,lng,altitude,angle,speed,params\n" +
+		"2026-05-01 00:00:00,-33.0,151.0,10,90,42,zeta=9,alpha=1,io1=on\n"
+	if err := os.WriteFile("gps.csv", []byte(csvData), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := ImportGPS([]string{"gps.csv"}, time.UTC, config.Default()); err != nil {
+		t.Fatalf("import gps: %v", err)
+	}
+	if err := ExportGPS("gps.tsv"); err != nil {
+		t.Fatalf("export gps: %v", err)
+	}
+
+	f, err := os.Open("gps.tsv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	r.Comma = '\t'
+	r.FieldsPerRecord = -1
+	rows, err := r.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("want header plus one row, got %d", len(rows))
+	}
+
+	wantHeader := []string{"Raw DT", "Normalised Time", "Lat", "Lng", "Altitude", "Angle", "Speed KPH", "alpha", "io1", "zeta"}
+	if !reflect.DeepEqual(rows[0], wantHeader) {
+		t.Fatalf("unexpected header\nwant: %#v\n got: %#v", wantHeader, rows[0])
+	}
+	for _, forbidden := range []string{"Params Raw", "Params JSON", "First Source File", "Seen Count", "Imported At"} {
+		for _, h := range rows[0] {
+			if h == forbidden {
+				t.Fatalf("metadata/audit column leaked into gps export: %s", forbidden)
+			}
+		}
+	}
+	wantRowPrefix := []string{"2026-05-01 00:00:00", "2026-05-01T10:00:00+10:00", "-33", "151", "10", "90", "42", "1", "on", "9"}
+	if !reflect.DeepEqual(rows[1], wantRowPrefix) {
+		t.Fatalf("unexpected row\nwant: %#v\n got: %#v", wantRowPrefix, rows[1])
+	}
+}
+
+func TestExportGPSEmptyDBWritesCoreHeaderOnly(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := Init(DefaultPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := ExportGPS("empty.tsv"); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := os.Open("empty.tsv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	r.Comma = '\t'
+	rows, err := r.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("want header only, got %#v", rows)
+	}
+	if !reflect.DeepEqual(rows[0], gpsExportCoreHeader) {
+		t.Fatalf("unexpected empty header: %#v", rows[0])
 	}
 }
