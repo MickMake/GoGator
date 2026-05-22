@@ -26,7 +26,7 @@ go.work
 /build/
 
 # Private local data. Keep only sample data in the repo.
-addresses.local.csv
+sites.local.csv
 routes.local.csv
 *_processed.csv
 *_expanded.csv
