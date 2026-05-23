@@ -45,3 +45,20 @@ func TestLoadNewSectionsOverrideDefaults(t *testing.T) {
 		t.Fatalf("integration toggles not loaded: %+v %+v %+v", cfg.Valhalla, cfg.H3, cfg.PostGIS)
 	}
 }
+
+func TestLoadNestedSectionSiblingResetsToParentSection(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "gogator.yaml")
+	data := "engine:\n  stay_detection:\n    enabled: true\n  compatibility_mode: false\n"
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Engine.CompatibilityMode {
+		t.Fatalf("expected compatibility_mode=false, got true")
+	}
+}

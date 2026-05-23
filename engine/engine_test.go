@@ -122,6 +122,28 @@ func TestRunDefaultEngineConfigIsBehaviorNeutral(t *testing.T) {
 	}
 }
 
+func TestRunBuildsEvidenceFromNormalizedPoints(t *testing.T) {
+	cfg := config.Default()
+	start := time.Date(2026, 5, 3, 9, 0, 0, 0, time.UTC)
+	pts := []gps.RawPoint{
+		mkPoint("n.csv", 5, start.Add(2*time.Minute), -33.002, 151.002, 12, map[string]float64{"io24": 1, "pdop": 2}),
+		mkPoint("n.csv", 3, start, -33.0, 151.0, 0, map[string]float64{"io24": 0, "io251": 1, "pdop": 2}),
+		mkPoint("n.csv", 4, start.Add(time.Minute), -33.001, 151.001, 10, map[string]float64{"io24": 1, "pdop": 2}),
+	}
+	res, err := Run(context.Background(), Input{Points: clonePoints(pts), Config: cfg, EngineConfig: EngineConfig{Quality: true}})
+	if err != nil {
+		t.Fatalf("Run error: %v", err)
+	}
+	if len(res.Points) != len(res.Evidence.Points) {
+		t.Fatalf("points/evidence length mismatch: %d vs %d", len(res.Points), len(res.Evidence.Points))
+	}
+	for i := range res.Points {
+		if !res.Points[i].Time.Equal(res.Evidence.Points[i].Time) {
+			t.Fatalf("evidence should align with normalized points at index %d", i)
+		}
+	}
+}
+
 func clonePoints(in []gps.RawPoint) []gps.RawPoint {
 	out := make([]gps.RawPoint, len(in))
 	for i, p := range in {

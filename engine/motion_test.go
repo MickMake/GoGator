@@ -58,6 +58,15 @@ func TestMotionGapAndNoise(t *testing.T) {
 	}
 }
 
+func TestMotionNoiseDoesNotPoisonHysteresisRecovery(t *testing.T) {
+	pts := motionPoints([]float64{0, 0, 0}, []float64{0, 0, 0}, time.Minute)
+	pts[1].Lat, pts[1].Lng = 0, 0
+	mv := classifyMotion(buildEvidence(pts, true).Points, defaultMotionConfig())
+	if mv.Samples[2].State != MotionStationary {
+		t.Fatalf("expected recovery to stationary after noise, got %s", mv.Samples[2].State)
+	}
+}
+
 func TestMotionDeterministic(t *testing.T) {
 	pts := motionPoints([]float64{0, 10, 20}, []float64{0, 1, 1}, time.Minute)
 	a := classifyMotion(buildEvidence(pts, true).Points, defaultMotionConfig())

@@ -1,5 +1,14 @@
 # Changes
 
+## v0.26.7.1
+
+- Fixed process pipeline error handling so `gogator process` and `gogator process gps` now propagate `engine.Run` failures instead of silently returning empty success-style outputs.
+- Fixed config parsing for nested sections so sibling keys after nested blocks (for example under `engine`) resolve to the correct parent section.
+- Fixed engine evidence sequencing to build passive evidence after point normalization/sort and delta recalculation so diagnostics align with normalized output points.
+- Fixed motion hysteresis recovery so `Gap`/`Noise` classifications no longer poison the active state and block immediate recovery on the next valid sample.
+- Fixed stay detection to enforce `engine.stay_detection.min_points` before emitting stays from stationary/noise clusters.
+- Added focused regression tests for each of the above fixes across app, config, motion, stays, and engine run evidence alignment.
+
 ## v0.26.7
 
 - Added passive engine visit modelling from detected stays, including known-site/unknown/pause/noise/home/supplier classifications, confidence, reasons, and stay traceability.

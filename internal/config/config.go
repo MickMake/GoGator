@@ -202,6 +202,11 @@ func Load(path string) (Config, error) {
 			continue
 		} else if strings.HasSuffix(line, ":") {
 			level := indent / 2
+			for k := range sectionByLevel {
+				if k > level {
+					delete(sectionByLevel, k)
+				}
+			}
 			sectionByLevel[level] = strings.TrimSuffix(line, ":")
 			parts := make([]string, 0, level+1)
 			for i := 0; i <= level; i++ {
@@ -220,6 +225,15 @@ func Load(path string) (Config, error) {
 		val := strings.Trim(strings.TrimSpace(parts[1]), "\"")
 		if indent == 0 {
 			section = ""
+		} else {
+			level := indent / 2
+			parts := make([]string, 0, level+1)
+			for i := 0; i < level; i++ {
+				if s, ok := sectionByLevel[i]; ok && s != "" {
+					parts = append(parts, s)
+				}
+			}
+			section = strings.Join(parts, ".")
 		}
 		apply(&cfg, section, key, val)
 	}
