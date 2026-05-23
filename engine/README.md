@@ -1,10 +1,63 @@
 # engine
 
-`engine` introduces an isolated seam around GoGator's existing in-memory GPS processing pipeline.
+`engine` is GoGator's explicit orchestration seam for in-memory GPS processing.
 
-Current state:
-- `engine.Run(ctx, input)` delegates to the same sequence used by `internal/app/process.go`.
-- No behaviour changes are intended.
-- Existing trip detection, jitter handling, important-site collapsing, and route enrichment remain in `internal/gps` and `internal/routes`.
+## Current state (this run)
 
-This package exists so future GPS intelligence work can be implemented behind a stable engine API without changing CLI behaviour.
+- `engine.Run(ctx, input)` is the compatibility wrapper around the existing processing pipeline.
+- It orchestrates the current sequence: sort/recalculate, classify, build trips, collapse to important sites, apply routes, and split jitter.
+- Core algorithms remain in `internal/gps` and `internal/routes` with no intended behaviour changes.
+- Compatibility mode is currently the only active behaviour path.
+
+## Config scaffolding (placeholders)
+
+- New configuration sections are now accepted and passed through `engine.Input.EngineConfig`:
+  - `engine`
+  - `engine.stay_detection`
+  - `engine.motion`
+  - `engine.quality`
+  - `engine.audit`
+  - `valhalla`
+  - `h3`
+  - `postgis`
+- Safe defaults keep behaviour unchanged:
+  - `engine.enabled: true`
+  - `engine.compatibility_mode: true`
+  - `engine.audit.enabled: false`
+  - `valhalla.enabled: false`
+  - `h3.enabled: false`
+  - `postgis.enabled: false`
+- These options are currently scaffolding only; they are parsed and passed through but do not alter trip logic yet.
+
+## Intended future state
+
+- `engine` becomes the staged GPS intelligence boundary where future processing implementations can be swapped in behind a stable API.
+- `internal/app/process.go` remains responsible for CLI-facing concerns (loading files/config and writing CSV outputs), while `engine` owns processing orchestration.
+
+## Explicit non-goals for this run
+
+- No Valhalla integration.
+- No H3 integration.
+- No PostGIS integration.
+- No trip-detection algorithm rewrite.
+- No CSV schema/header changes.
+- Valhalla, H3, and PostGIS are intentionally inactive and not required for build/test/runtime.
+
+
+## Passive evidence and quality scoring (v0.26.4)
+
+- `engine.Run` now extracts passive per-point evidence into `engine.Result.Evidence`.
+- Evidence captures tracker signal fields when present (`io24`, `io251`, `io14`, `pdop`, `gpslev`, `gsmlev`, `g0`, `g1`, `g2`, `io247`, `io253`, `io303`) and tolerates missing fields safely.
+- A deterministic point quality score is available with bands: `Good`, `Usable`, `Poor`, `Invalid`, `Unknown`.
+- Quality scoring is passive instrumentation only for now: it does not alter trip boundaries, jitter handling, route application, important-site collapse, or CSV output schemas.
+- `engine.quality.enabled` acts as a passive switch for scoring. When disabled, quality remains `Unknown` while evidence extraction still runs.
+- Intended future use: motion/stay/trip stages may consume this evidence, but this release keeps compatibility-first behaviour unchanged.
+
+
+## Passive motion classification with hysteresis (v0.26.5)
+
+- Added passive motion diagnostics (`MotionSample`, `MotionSegment`) with states `Moving`, `Stationary`, `Unknown`, `Gap`, and `Noise`.
+- Classification combines existing point evidence/quality, speed, `io24`, `io251`, coordinate validity, duplicate timestamps, and timestamp gaps.
+- Conservative hysteresis requires repeated contrary samples before changing between moving and stationary, and tolerates brief uncertainty.
+- Motion remains passive in this release: it does not alter trip construction, important-site collapsing, route application, or CSV output headers.
+- Intended future use: staged stay detection and future trip-building refinements can consume motion diagnostics without changing current compatibility behaviour today.

@@ -8,14 +8,29 @@ import (
 )
 
 type Input struct {
-	Points []gps.RawPoint
-	Sites  []sites.Site
-	Routes []routes.Route
-	Config config.Config
+	Points       []gps.RawPoint
+	Sites        []sites.Site
+	Routes       []routes.Route
+	Config       config.Config
+	EngineConfig EngineConfig
+}
+
+type EngineConfig struct {
+	Enabled           bool
+	CompatibilityMode bool
+	StayDetection     bool
+	Motion            MotionConfig
+	Quality           bool
+	Audit             bool
+	Valhalla          bool
+	H3                bool
+	PostGIS           bool
 }
 
 type Result struct {
 	Points            []gps.RawPoint
+	Evidence          EvidenceSet
+	Motion            MotionEvidence
 	Valid             []gps.Trip
 	Jitter            []gps.Trip
 	JitterReview      []gps.Trip

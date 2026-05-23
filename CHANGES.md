@@ -1,5 +1,33 @@
 # Changes
 
+## v0.26.5
+
+- Added passive engine motion classification with deterministic hysteresis across `Moving`, `Stationary`, `Unknown`, `Gap`, and `Noise` states.
+- Motion classification uses existing passive evidence/quality plus speed, tracker movement/idling signals (`io24`, `io251`), coordinate validity, duplicate timestamps, and time-gap detection.
+- Added passive motion diagnostics to `engine.Result` as samples and segments; callers are not required to consume them and processing behaviour is unchanged.
+- Added engine motion tests for stable stationary/moving runs, hysteresis against one-point spikes/pauses, noise/gap handling, determinism, and run-level passive parity.
+
+## v0.26.4
+
+- Added passive engine evidence extraction for per-point tracker signals in the new engine evidence model (`PointEvidence`, `SignalEvidence`, `EvidenceSet`) without changing current trip decisions.
+- Added deterministic passive point quality scoring (`QualityScore`, `QualityReason`) with `Good`/`Usable`/`Poor`/`Invalid`/`Unknown` bands and conservative checks for coordinate validity, GPS quality hints, timestamp continuity, and implausible jumps.
+- Wired passive evidence into `engine.Result` so callers can inspect diagnostics without requiring adoption; existing process/CSV/route behaviour remains unchanged.
+- Added engine tests covering missing signal fields, quality classifications, duplicate timestamp handling, determinism, and passive run parity.
+- Updated engine documentation for passive instrumentation and clarified future staged use by motion/stay/trip logic.
+
+## v0.26.3
+
+- Added engine configuration scaffolding with safe defaults for `engine`, `engine.stay_detection`, `engine.motion`, `engine.quality`, `engine.audit`, `valhalla`, `h3`, and `postgis`.
+- Wired engine-related config into `engine.Input` so `engine.Run` receives future-facing toggles without changing current processing behaviour.
+- Added config and engine coverage to assert old configs still load, new sections parse with safe defaults, and engine compatibility behaviour remains unchanged.
+- Updated engine docs and sample config to mark Valhalla/H3/PostGIS as intentionally inactive placeholders in this release.
+
+## v0.28
+
+- Moved the processing orchestration seam fully into `engine.Run`, keeping file/config loading and output writing in `internal/app/process.go`.
+- Expanded `engine` compatibility tests to assert parity for route application and jitter split outputs through the engine boundary.
+- Updated `engine/README.md` to document the compatibility-wrapper status, future seam intent, and explicit non-goals for this run.
+
 ## v0.27
 
 - Added a new root-level `engine/` package with `engine.Run(ctx, input)` as an isolated processing seam.
