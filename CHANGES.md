@@ -1,5 +1,11 @@
 # Changes
 
+## v0.27
+
+- Added a new root-level `engine/` package with `engine.Run(ctx, input)` as an isolated processing seam.
+- Wired `internal/app/process.go` to execute the existing pipeline through the new engine seam with no intended behaviour change.
+- Added engine parity tests with a synthetic dataset to assert matching trips, jitter splitting, route observations, and route anomalies against the legacy sequence.
+
 ## v0.26
 
 - Implemented the first `gogator process gps` SQLite bridge: it reads GPS points, sites, and routes from `gogator.sqlite`, reuses the existing in-memory process pipeline, and writes the standard `gogator_*` process CSV output family.
