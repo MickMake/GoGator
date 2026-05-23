@@ -1,5 +1,12 @@
 # Changes
 
+## v0.26.5
+
+- Added passive engine motion classification with deterministic hysteresis across `Moving`, `Stationary`, `Unknown`, `Gap`, and `Noise` states.
+- Motion classification uses existing passive evidence/quality plus speed, tracker movement/idling signals (`io24`, `io251`), coordinate validity, duplicate timestamps, and time-gap detection.
+- Added passive motion diagnostics to `engine.Result` as samples and segments; callers are not required to consume them and processing behaviour is unchanged.
+- Added engine motion tests for stable stationary/moving runs, hysteresis against one-point spikes/pauses, noise/gap handling, determinism, and run-level passive parity.
+
 ## v0.26.4
 
 - Added passive engine evidence extraction for per-point tracker signals in the new engine evidence model (`PointEvidence`, `SignalEvidence`, `EvidenceSet`) without changing current trip decisions.

@@ -30,7 +30,13 @@ type Engine struct {
 }
 
 type EngineStayDetection struct{ Enabled bool }
-type EngineMotion struct{ Enabled bool }
+type EngineMotion struct {
+	Enabled                     bool
+	StationarySpeedThresholdKPH float64
+	MovingSpeedThresholdKPH     float64
+	GapThresholdMinutes         float64
+	MinConsecutiveSamples       int
+}
 type EngineQuality struct{ Enabled bool }
 type EngineAudit struct{ Enabled bool }
 type Valhalla struct{ Enabled bool }
@@ -123,9 +129,15 @@ func Default() Config {
 			Enabled:           true,
 			CompatibilityMode: true,
 			StayDetection:     EngineStayDetection{Enabled: false},
-			Motion:            EngineMotion{Enabled: false},
-			Quality:           EngineQuality{Enabled: false},
-			Audit:             EngineAudit{Enabled: false},
+			Motion: EngineMotion{
+				Enabled:                     false,
+				StationarySpeedThresholdKPH: 2,
+				MovingSpeedThresholdKPH:     8,
+				GapThresholdMinutes:         20,
+				MinConsecutiveSamples:       2,
+			},
+			Quality: EngineQuality{Enabled: false},
+			Audit:   EngineAudit{Enabled: false},
 		},
 		Valhalla: Valhalla{Enabled: false},
 		H3:       H3{Enabled: false},
@@ -281,8 +293,17 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.StayDetection.Enabled = b(val, cfg.Engine.StayDetection.Enabled)
 		}
 	case "engine.motion":
-		if key == "enabled" {
+		switch key {
+		case "enabled":
 			cfg.Engine.Motion.Enabled = b(val, cfg.Engine.Motion.Enabled)
+		case "stationary_speed_threshold_kmh":
+			cfg.Engine.Motion.StationarySpeedThresholdKPH = f(val, cfg.Engine.Motion.StationarySpeedThresholdKPH)
+		case "moving_speed_threshold_kmh":
+			cfg.Engine.Motion.MovingSpeedThresholdKPH = f(val, cfg.Engine.Motion.MovingSpeedThresholdKPH)
+		case "gap_threshold_minutes":
+			cfg.Engine.Motion.GapThresholdMinutes = f(val, cfg.Engine.Motion.GapThresholdMinutes)
+		case "min_consecutive_samples":
+			cfg.Engine.Motion.MinConsecutiveSamples = i(val, cfg.Engine.Motion.MinConsecutiveSamples)
 		}
 	case "engine.quality":
 		if key == "enabled" {

@@ -52,6 +52,8 @@ func buildEvidence(points []gps.RawPoint, enableQuality bool) EvidenceSet {
 			},
 			Signals: extractSignalEvidence(p),
 		}
+		s := p.SpeedKPH
+		ev.Signals.Speed = &s
 		if enableQuality {
 			ev.Quality = scorePointQuality(i, points, ev)
 		} else {

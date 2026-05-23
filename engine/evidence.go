@@ -20,6 +20,7 @@ type CoordinateEvidence struct {
 }
 
 type SignalEvidence struct {
+	Speed  *float64
 	IO24   *float64
 	IO251  *float64
 	IO14   *float64
