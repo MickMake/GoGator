@@ -202,9 +202,27 @@ func TestExportPathsRecognized(t *testing.T) {
 }
 
 func TestProcessGPSRecognized(t *testing.T) {
-	err := run([]string{"process", "gps", "during", "2026"})
-	if err == nil || !strings.Contains(err.Error(), "not implemented yet: process gps") {
-		t.Fatalf("got %v", err)
+	t.Chdir(t.TempDir())
+	if err := run([]string{"db", "init"}); err != nil {
+		t.Fatalf("db init: %v", err)
+	}
+	csvData := "dt,lat,lng,altitude,angle,speed,params\n" +
+		"2026-05-01 00:00:00,-33.0,151.0,10,90,0,io1=0\n" +
+		"2026-05-01 00:10:00,-33.1,151.1,10,90,50,io1=1\n" +
+		"2026-05-01 00:20:00,-33.2,151.2,10,90,0,io1=0\n"
+	if err := os.WriteFile("raw.csv", []byte(csvData), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := run([]string{"load", "gator", "from", "raw.csv"}); err != nil {
+		t.Fatalf("load gator: %v", err)
+	}
+	if err := run([]string{"process", "gps"}); err != nil {
+		t.Fatalf("process gps: %v", err)
+	}
+	for _, path := range []string{"gogator_processed.csv", "gogator_expanded.csv", "gogator_jitter.csv", "gogator_jitter_same_site.csv", "gogator_route_observations.csv", "gogator_route_anomalies.csv", "gogator_audit.csv"} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("expected %s: %v", path, err)
+		}
 	}
 }
 
