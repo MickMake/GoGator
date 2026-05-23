@@ -2,6 +2,9 @@
 
 ## v0.26
 
+- Implemented the first `gogator process gps` SQLite bridge: it reads GPS points, sites, and routes from `gogator.sqlite`, reuses the existing in-memory process pipeline, and writes the standard `gogator_*` process CSV output family.
+- Added process-gps store readers for SQLite GPS points, sites, and routes.
+- Added CLI and smoke coverage for `process gps`.
 - Added recognised-but-stubbed Google vendor commands: `load google` and `dump google`, both returning `not implemented yet` for now.
 - Renamed vendor tracker interchange commands: `import raw` is now `load gator`, and `export raw` is now `dump gator`.
 - Removed the old `import raw` and `export raw` command forms; GoGator is still alpha before v1.0, so no backwards compatibility alias is kept.
