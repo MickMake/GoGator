@@ -85,6 +85,41 @@ func TestRunRoutesAppliedThroughEngineBoundary(t *testing.T) {
 	}
 }
 
+func TestRunDefaultEngineConfigIsBehaviorNeutral(t *testing.T) {
+	cfg := config.Default()
+	siteList := []sites.Site{{Name: "Home", Address: "A", Lat: -33.0, Lng: 151.0, RadiusM: 120, MinDestinationMinutes: 1, Important: true}}
+	start := time.Date(2026, 5, 3, 8, 0, 0, 0, time.UTC)
+	pts := []gps.RawPoint{
+		mkPoint("n.csv", 2, start, -33.0, 151.0, 0, map[string]float64{"io24": 0, "io251": 1}),
+		mkPoint("n.csv", 3, start.Add(1*time.Minute), -33.001, 151.001, 32, map[string]float64{"io24": 1}),
+	}
+
+	base, err := Run(context.Background(), Input{Points: clonePoints(pts), Sites: siteList, Config: cfg})
+	if err != nil {
+		t.Fatalf("Run base error: %v", err)
+	}
+	withCfg, err := Run(context.Background(), Input{
+		Points: clonePoints(pts), Sites: siteList, Config: cfg,
+		EngineConfig: EngineConfig{
+			Enabled:           cfg.Engine.Enabled,
+			CompatibilityMode: cfg.Engine.CompatibilityMode,
+			StayDetection:     cfg.Engine.StayDetection.Enabled,
+			Motion:            cfg.Engine.Motion.Enabled,
+			Quality:           cfg.Engine.Quality.Enabled,
+			Audit:             cfg.Engine.Audit.Enabled,
+			Valhalla:          cfg.Valhalla.Enabled,
+			H3:                cfg.H3.Enabled,
+			PostGIS:           cfg.PostGIS.Enabled,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run with config error: %v", err)
+	}
+	if !reflect.DeepEqual(normalizeTrips(base.Valid), normalizeTrips(withCfg.Valid)) || !reflect.DeepEqual(normalizeTrips(base.Jitter), normalizeTrips(withCfg.Jitter)) {
+		t.Fatalf("default engine config should not change behavior")
+	}
+}
+
 func clonePoints(in []gps.RawPoint) []gps.RawPoint {
 	out := make([]gps.RawPoint, len(in))
 	for i, p := range in {

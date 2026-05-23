@@ -1,5 +1,12 @@
 # Changes
 
+## v0.26.3
+
+- Added engine configuration scaffolding with safe defaults for `engine`, `engine.stay_detection`, `engine.motion`, `engine.quality`, `engine.audit`, `valhalla`, `h3`, and `postgis`.
+- Wired engine-related config into `engine.Input` so `engine.Run` receives future-facing toggles without changing current processing behaviour.
+- Added config and engine coverage to assert old configs still load, new sections parse with safe defaults, and engine compatibility behaviour remains unchanged.
+- Updated engine docs and sample config to mark Valhalla/H3/PostGIS as intentionally inactive placeholders in this release.
+
 ## v0.28
 
 - Moved the processing orchestration seam fully into `engine.Run`, keeping file/config loading and output writing in `internal/app/process.go`.

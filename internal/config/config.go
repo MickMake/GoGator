@@ -14,7 +14,28 @@ type Config struct {
 	Trip     TripDetection
 	Site     SiteMatching
 	RawTime  RawTime
+	Engine   Engine
+	Valhalla Valhalla
+	H3       H3
+	PostGIS  PostGIS
 }
+
+type Engine struct {
+	Enabled           bool
+	CompatibilityMode bool
+	StayDetection     EngineStayDetection
+	Motion            EngineMotion
+	Quality           EngineQuality
+	Audit             EngineAudit
+}
+
+type EngineStayDetection struct{ Enabled bool }
+type EngineMotion struct{ Enabled bool }
+type EngineQuality struct{ Enabled bool }
+type EngineAudit struct{ Enabled bool }
+type Valhalla struct{ Enabled bool }
+type H3 struct{ Enabled bool }
+type PostGIS struct{ Enabled bool }
 
 type TripDetection struct {
 	MovingSpeedKPH                     float64
@@ -35,20 +56,20 @@ type TripDetection struct {
 }
 
 type SiteMatching struct {
-	DefaultRadiusM                  float64
-	DefaultMinDestinationMinutes    float64
-	UnknownCheckMinDestinationMin   float64
-	StationaryDwellRatioRequired    float64
-	DwellWindowMinutes              float64
-	DwellRequiredInsideRatio        float64
-	DwellRequiredStationaryRatio    float64
-	DwellMaxSampleGapMinutes        float64
-	ContinuityRepairEnabled         bool
-	ContinuityMatchMaxMetres        float64
-	InferSilentStopGaps             bool
-	SilentStopMinGapMinutes         float64
-	UnknownSiteLabel                string
-	HomeSiteName                    string
+	DefaultRadiusM                float64
+	DefaultMinDestinationMinutes  float64
+	UnknownCheckMinDestinationMin float64
+	StationaryDwellRatioRequired  float64
+	DwellWindowMinutes            float64
+	DwellRequiredInsideRatio      float64
+	DwellRequiredStationaryRatio  float64
+	DwellMaxSampleGapMinutes      float64
+	ContinuityRepairEnabled       bool
+	ContinuityMatchMaxMetres      float64
+	InferSilentStopGaps           bool
+	SilentStopMinGapMinutes       float64
+	UnknownSiteLabel              string
+	HomeSiteName                  string
 }
 
 type RawTime struct {
@@ -79,25 +100,36 @@ func Default() Config {
 			SameSiteGuardRadiusM:               750,
 		},
 		Site: SiteMatching{
-			DefaultRadiusM:               100,
-			DefaultMinDestinationMinutes: 5,
+			DefaultRadiusM:                100,
+			DefaultMinDestinationMinutes:  5,
 			UnknownCheckMinDestinationMin: 10,
-			StationaryDwellRatioRequired: 0.70,
-			DwellWindowMinutes:           180,
-			DwellRequiredInsideRatio:     0.70,
-			DwellRequiredStationaryRatio: 0.70,
-			DwellMaxSampleGapMinutes:     90,
-			ContinuityRepairEnabled:      true,
-			ContinuityMatchMaxMetres:     75,
-			InferSilentStopGaps:          true,
-			SilentStopMinGapMinutes:      5,
-			UnknownSiteLabel:             "CHECK",
-			HomeSiteName:                 "Home",
+			StationaryDwellRatioRequired:  0.70,
+			DwellWindowMinutes:            180,
+			DwellRequiredInsideRatio:      0.70,
+			DwellRequiredStationaryRatio:  0.70,
+			DwellMaxSampleGapMinutes:      90,
+			ContinuityRepairEnabled:       true,
+			ContinuityMatchMaxMetres:      75,
+			InferSilentStopGaps:           true,
+			SilentStopMinGapMinutes:       5,
+			UnknownSiteLabel:              "CHECK",
+			HomeSiteName:                  "Home",
 		},
 		RawTime: RawTime{
 			Source:          "gator_raw_utc",
 			CorrectionHours: 0,
 		},
+		Engine: Engine{
+			Enabled:           true,
+			CompatibilityMode: true,
+			StayDetection:     EngineStayDetection{Enabled: false},
+			Motion:            EngineMotion{Enabled: false},
+			Quality:           EngineQuality{Enabled: false},
+			Audit:             EngineAudit{Enabled: false},
+		},
+		Valhalla: Valhalla{Enabled: false},
+		H3:       H3{Enabled: false},
+		PostGIS:  PostGIS{Enabled: false},
 	}
 }
 
@@ -112,6 +144,7 @@ func Load(path string) (Config, error) {
 	}
 	defer f.Close()
 
+	sectionByLevel := map[int]string{}
 	section := ""
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -126,6 +159,18 @@ func Load(path string) (Config, error) {
 		line = strings.TrimSpace(line)
 		if strings.HasSuffix(line, ":") && indent == 0 {
 			section = strings.TrimSuffix(line, ":")
+			sectionByLevel = map[int]string{0: section}
+			continue
+		} else if strings.HasSuffix(line, ":") {
+			level := indent / 2
+			sectionByLevel[level] = strings.TrimSuffix(line, ":")
+			parts := make([]string, 0, level+1)
+			for i := 0; i <= level; i++ {
+				if s, ok := sectionByLevel[i]; ok && s != "" {
+					parts = append(parts, s)
+				}
+			}
+			section = strings.Join(parts, ".")
 			continue
 		}
 		parts := strings.SplitN(line, ":", 2)
@@ -223,6 +268,41 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.RawTime.Source = val
 		case "correction_hours":
 			cfg.RawTime.CorrectionHours = f(val, cfg.RawTime.CorrectionHours)
+		}
+	case "engine":
+		switch key {
+		case "enabled":
+			cfg.Engine.Enabled = b(val, cfg.Engine.Enabled)
+		case "compatibility_mode":
+			cfg.Engine.CompatibilityMode = b(val, cfg.Engine.CompatibilityMode)
+		}
+	case "engine.stay_detection":
+		if key == "enabled" {
+			cfg.Engine.StayDetection.Enabled = b(val, cfg.Engine.StayDetection.Enabled)
+		}
+	case "engine.motion":
+		if key == "enabled" {
+			cfg.Engine.Motion.Enabled = b(val, cfg.Engine.Motion.Enabled)
+		}
+	case "engine.quality":
+		if key == "enabled" {
+			cfg.Engine.Quality.Enabled = b(val, cfg.Engine.Quality.Enabled)
+		}
+	case "engine.audit":
+		if key == "enabled" {
+			cfg.Engine.Audit.Enabled = b(val, cfg.Engine.Audit.Enabled)
+		}
+	case "valhalla":
+		if key == "enabled" {
+			cfg.Valhalla.Enabled = b(val, cfg.Valhalla.Enabled)
+		}
+	case "h3":
+		if key == "enabled" {
+			cfg.H3.Enabled = b(val, cfg.H3.Enabled)
+		}
+	case "postgis":
+		if key == "enabled" {
+			cfg.PostGIS.Enabled = b(val, cfg.PostGIS.Enabled)
 		}
 	}
 }
