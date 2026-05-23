@@ -52,3 +52,12 @@
 - Quality scoring is passive instrumentation only for now: it does not alter trip boundaries, jitter handling, route application, important-site collapse, or CSV output schemas.
 - `engine.quality.enabled` acts as a passive switch for scoring. When disabled, quality remains `Unknown` while evidence extraction still runs.
 - Intended future use: motion/stay/trip stages may consume this evidence, but this release keeps compatibility-first behaviour unchanged.
+
+
+## Passive motion classification with hysteresis (v0.26.5)
+
+- Added passive motion diagnostics (`MotionSample`, `MotionSegment`) with states `Moving`, `Stationary`, `Unknown`, `Gap`, and `Noise`.
+- Classification combines existing point evidence/quality, speed, `io24`, `io251`, coordinate validity, duplicate timestamps, and timestamp gaps.
+- Conservative hysteresis requires repeated contrary samples before changing between moving and stationary, and tolerates brief uncertainty.
+- Motion remains passive in this release: it does not alter trip construction, important-site collapsing, route application, or CSV output headers.
+- Intended future use: staged stay detection and future trip-building refinements can consume motion diagnostics without changing current compatibility behaviour today.

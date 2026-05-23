@@ -309,12 +309,18 @@ func buildEngineConfig(cfg config.Config) engine.EngineConfig {
 		Enabled:           cfg.Engine.Enabled,
 		CompatibilityMode: cfg.Engine.CompatibilityMode,
 		StayDetection:     cfg.Engine.StayDetection.Enabled,
-		Motion:            cfg.Engine.Motion.Enabled,
-		Quality:           cfg.Engine.Quality.Enabled,
-		Audit:             cfg.Engine.Audit.Enabled,
-		Valhalla:          cfg.Valhalla.Enabled,
-		H3:                cfg.H3.Enabled,
-		PostGIS:           cfg.PostGIS.Enabled,
+		Motion: engine.MotionConfig{
+			Enabled:                     cfg.Engine.Motion.Enabled,
+			StationarySpeedThresholdKPH: cfg.Engine.Motion.StationarySpeedThresholdKPH,
+			MovingSpeedThresholdKPH:     cfg.Engine.Motion.MovingSpeedThresholdKPH,
+			GapThresholdMinutes:         cfg.Engine.Motion.GapThresholdMinutes,
+			MinConsecutiveSamples:       cfg.Engine.Motion.MinConsecutiveSamples,
+		},
+		Quality:  cfg.Engine.Quality.Enabled,
+		Audit:    cfg.Engine.Audit.Enabled,
+		Valhalla: cfg.Valhalla.Enabled,
+		H3:       cfg.H3.Enabled,
+		PostGIS:  cfg.PostGIS.Enabled,
 	}
 }
 

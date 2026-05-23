@@ -104,7 +104,7 @@ func TestRunDefaultEngineConfigIsBehaviorNeutral(t *testing.T) {
 			Enabled:           cfg.Engine.Enabled,
 			CompatibilityMode: cfg.Engine.CompatibilityMode,
 			StayDetection:     cfg.Engine.StayDetection.Enabled,
-			Motion:            cfg.Engine.Motion.Enabled,
+			Motion:            MotionConfig{Enabled: cfg.Engine.Motion.Enabled, StationarySpeedThresholdKPH: cfg.Engine.Motion.StationarySpeedThresholdKPH, MovingSpeedThresholdKPH: cfg.Engine.Motion.MovingSpeedThresholdKPH, GapThresholdMinutes: cfg.Engine.Motion.GapThresholdMinutes, MinConsecutiveSamples: cfg.Engine.Motion.MinConsecutiveSamples},
 			Quality:           cfg.Engine.Quality.Enabled,
 			Audit:             cfg.Engine.Audit.Enabled,
 			Valhalla:          cfg.Valhalla.Enabled,
