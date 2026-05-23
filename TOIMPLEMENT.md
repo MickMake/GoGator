@@ -85,6 +85,41 @@ Current rules:
 - `db backup` refuses to overwrite an existing destination file.
 - `db vacuum` compacts the existing default database in place.
 
+## Process GPS
+
+Implemented command:
+
+```bash
+gogator process gps
+```
+
+Current behaviour:
+
+- Reads GPS points already loaded into `gogator.sqlite`.
+- Reads sites and routes from SQLite.
+- Reuses the existing in-memory process pipeline rather than rewriting trip logic.
+- Writes the standard process output family using the `gogator_` prefix:
+  - `gogator_processed.csv`
+  - `gogator_expanded.csv`
+  - `gogator_jitter.csv`
+  - `gogator_jitter_same_site.csv`
+  - `gogator_route_observations.csv`
+  - `gogator_route_anomalies.csv`
+  - `gogator_audit.csv`
+- Prints the same process summary and route anomaly/error count to stdout.
+- Does not yet persist processed trips, waypoints, route stats, point classifications, or issues back into SQLite.
+
+Current file-based workflow remains:
+
+```bash
+gogator process <raw-gps.csv...>
+```
+
+Future decision:
+
+- Decide whether `process <raw-gps.csv...>` becomes a convenience wrapper around `load gator`, `process gps`, and default exports.
+- Decide when processed output should be persisted into SQLite tables instead of, or as well as, CSV outputs.
+
 ## Settings foundation
 
 Implemented schema:
@@ -123,7 +158,6 @@ Planned behaviour:
 Not implemented yet:
 
 ```bash
-gogator process gps ...
 gogator load google ...
 gogator dump google ...
 gogator export trips ...
@@ -136,28 +170,9 @@ gogator show gps params
 gogator reset gps params
 ```
 
-## Process GPS
-
-Planned purpose:
-
-```text
-SQLite gps_points + sites + routes -> trips + classifications + route_stats + issues + waypoints
-```
-
-Current file-based workflow remains:
-
-```bash
-gogator process <raw-gps.csv...>
-```
-
-Future decision:
-
-- Decide whether `process <raw-gps.csv...>` becomes a convenience wrapper around `load gator`, `process gps`, and default exports.
-- No migration/backwards compatibility requirement yet because the tool is not actively in production use.
-
 ## Export commands after process gps
 
-These become meaningful after `process gps` exists:
+These become meaningful after processed output is persisted in SQLite:
 
 ```bash
 gogator export trips as trips.tsv
