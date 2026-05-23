@@ -14,6 +14,7 @@ import (
 	"gogator/internal/output"
 	"gogator/internal/routes"
 	"gogator/internal/sites"
+	"gogator/internal/store"
 )
 
 type Options struct {
@@ -25,6 +26,23 @@ type Options struct {
 	Timezone   string
 }
 
+type processResult struct {
+	Source            string
+	SitesSource       string
+	RoutesSource      string
+	ConfigPath        string
+	Timezone          string
+	Points            []gps.RawPoint
+	Valid             []gps.Trip
+	Jitter            []gps.Trip
+	JitterReview      []gps.Trip
+	JitterSameSite    []gps.Trip
+	RouteObservations []routes.Observation
+	RouteAnomalies    []routes.Anomaly
+	SiteCount         int
+	RouteCount        int
+}
+
 func RunProcess(opts Options) error {
 	if len(opts.Inputs) == 0 && opts.Input != "" {
 		opts.Inputs = []string{opts.Input}
@@ -32,12 +50,76 @@ func RunProcess(opts Options) error {
 	if len(opts.Inputs) == 0 {
 		return fmt.Errorf("missing input CSV")
 	}
+	cfg, err := loadProcessConfig(&opts)
+	if err != nil {
+		return err
+	}
+	if math.Abs(cfg.RawTime.CorrectionHours) > 0.000001 {
+		fmt.Fprintf(os.Stderr, "warning: raw_time.correction_hours=%.2f shifts raw tracker timestamps before local date grouping; use only for known malformed exports\n", cfg.RawTime.CorrectionHours)
+	}
+
+	loc, err := time.LoadLocation(cfg.Timezone)
+	if err != nil {
+		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
+	}
+
+	return runProcessCombined(opts, cfg, loc)
+}
+
+func RunProcessGPS(opts Options) error {
+	cfg, err := loadProcessConfig(&opts)
+	if err != nil {
+		return err
+	}
+	if math.Abs(cfg.RawTime.CorrectionHours) > 0.000001 {
+		fmt.Fprintf(os.Stderr, "warning: raw_time.correction_hours=%.2f is ignored for already-loaded SQLite GPS points\n", cfg.RawTime.CorrectionHours)
+	}
+
+	points, err := store.LoadGPSPointsForProcess()
+	if err != nil {
+		return fmt.Errorf("load gps points from database: %w", err)
+	}
+	if len(points) == 0 {
+		return fmt.Errorf("no GPS points found in database; run: gogator load gator from <file>")
+	}
+
+	siteList, err := store.LoadSitesForProcess(cfg)
+	if err != nil {
+		return fmt.Errorf("load sites from database: %w", err)
+	}
+	if len(siteList) == 0 {
+		fmt.Fprintf(os.Stderr, "warning: loaded 0 sites from database; all sites will be CHECK\n")
+	} else {
+		fmt.Fprintf(os.Stderr, "loaded sites: %d from database\n", len(siteList))
+	}
+
+	routeRules, err := store.LoadRoutesForProcess()
+	if err != nil {
+		return fmt.Errorf("load routes from database: %w", err)
+	}
+	if len(routeRules) == 0 {
+		fmt.Fprintf(os.Stderr, "loaded routes: 0 from database; observations will still be generated\n")
+	} else {
+		fmt.Fprintf(os.Stderr, "loaded routes: %d from database\n", len(routeRules))
+	}
+
+	res := runProcessPipeline(points, siteList, routeRules, cfg)
+	res.Source = "gogator.sqlite"
+	res.SitesSource = "database"
+	res.RoutesSource = "database"
+	res.ConfigPath = opts.ConfigPath
+	res.Timezone = cfg.Timezone
+	printProcessGPSResult(res)
+	return nil
+}
+
+func loadProcessConfig(opts *Options) (config.Config, error) {
 	if opts.ConfigPath == "" {
 		opts.ConfigPath = DefaultConfigPath()
 	}
 	cfg, err := config.Load(opts.ConfigPath)
 	if err != nil {
-		return err
+		return cfg, err
 	}
 	if envTZ := os.Getenv("GOGATOR_TIMEZONE"); envTZ != "" {
 		cfg.Timezone = envTZ
@@ -57,16 +139,7 @@ func RunProcess(opts Options) error {
 	if cfg.Routes == "" {
 		cfg.Routes = "routes.csv"
 	}
-	if math.Abs(cfg.RawTime.CorrectionHours) > 0.000001 {
-		fmt.Fprintf(os.Stderr, "warning: raw_time.correction_hours=%.2f shifts raw tracker timestamps before local date grouping; use only for known malformed exports\n", cfg.RawTime.CorrectionHours)
-	}
-
-	loc, err := time.LoadLocation(cfg.Timezone)
-	if err != nil {
-		return fmt.Errorf("timezone %q: %w", cfg.Timezone, err)
-	}
-
-	return runProcessCombined(opts, cfg, loc)
+	return cfg, nil
 }
 
 func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) error {
@@ -104,6 +177,62 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 		}
 		points = append(points, pts...)
 	}
+	res := runProcessPipeline(points, siteList, routeRules, cfg)
+	res.Source = strings.Join(opts.Inputs, ";")
+	res.SitesSource = sitesPath
+	res.RoutesSource = routesPath
+	res.ConfigPath = opts.ConfigPath
+	res.Timezone = cfg.Timezone
+
+	prefix := output.Prefix(primaryInput)
+	if len(opts.Inputs) > 1 {
+		prefix = filepath.Join(filepath.Dir(primaryInput), commonOutputName(opts.Inputs))
+	}
+	expanded := prefix + "_expanded.csv"
+	processed := prefix + "_processed.csv"
+	jitterPath := prefix + "_jitter.csv"
+	jitterSameSitePath := prefix + "_jitter_same_site.csv"
+	audit := prefix + "_audit.csv"
+	routeObservationsPath := prefix + "_route_observations.csv"
+	routeAnomaliesPath := prefix + "_route_anomalies.csv"
+
+	if err := output.WriteExpanded(expanded, res.Points); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(processed, res.Valid); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(jitterPath, res.JitterReview); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(jitterSameSitePath, res.JitterSameSite); err != nil {
+		return err
+	}
+	if err := output.WriteRouteObservations(routeObservationsPath, res.RouteObservations); err != nil {
+		return err
+	}
+	if err := output.WriteRouteAnomalies(routeAnomaliesPath, res.RouteAnomalies); err != nil {
+		return err
+	}
+	if err := output.WriteAudit(audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount); err != nil {
+		return err
+	}
+
+	fmt.Printf("processed raw points: %d\n", len(res.Points))
+	fmt.Printf("valid trips: %d\n", len(res.Valid))
+	fmt.Printf("rejected jitter: %d\n", len(res.Jitter))
+	fmt.Printf("same-site jitter: %d\n", len(res.JitterSameSite))
+	fmt.Printf("wrote: %s\n", processed)
+	fmt.Printf("wrote: %s\n", expanded)
+	fmt.Printf("wrote: %s\n", jitterPath)
+	fmt.Printf("wrote: %s\n", jitterSameSitePath)
+	fmt.Printf("wrote: %s\n", routeObservationsPath)
+	fmt.Printf("wrote: %s\n", routeAnomaliesPath)
+	fmt.Printf("wrote: %s\n", audit)
+	return nil
+}
+
+func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules []routes.Route, cfg config.Config) processResult {
 	sort.SliceStable(points, func(i, j int) bool {
 		if points[i].Time.Equal(points[j].Time) {
 			if points[i].SourceFile == points[j].SourceFile {
@@ -121,52 +250,44 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 	valid, routeObservations, routeAnomalies := routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
 	jitterReview, jitterSameSite := splitSameSiteJitter(jitter)
 
-	prefix := output.Prefix(primaryInput)
-	if len(opts.Inputs) > 1 {
-		prefix = filepath.Join(filepath.Dir(primaryInput), commonOutputName(opts.Inputs))
+	return processResult{
+		Points:            points,
+		Valid:             valid,
+		Jitter:            jitter,
+		JitterReview:      jitterReview,
+		JitterSameSite:    jitterSameSite,
+		RouteObservations: routeObservations,
+		RouteAnomalies:    routeAnomalies,
+		SiteCount:         len(siteList),
+		RouteCount:        len(routeRules),
 	}
-	expanded := prefix + "_expanded.csv"
-	processed := prefix + "_processed.csv"
-	jitterPath := prefix + "_jitter.csv"
-	jitterSameSitePath := prefix + "_jitter_same_site.csv"
-	audit := prefix + "_audit.csv"
-	routeObservationsPath := prefix + "_route_observations.csv"
-	routeAnomaliesPath := prefix + "_route_anomalies.csv"
+}
 
-	if err := output.WriteExpanded(expanded, points); err != nil {
-		return err
-	}
-	if err := output.WriteTrips(processed, valid); err != nil {
-		return err
-	}
-	if err := output.WriteTrips(jitterPath, jitterReview); err != nil {
-		return err
-	}
-	if err := output.WriteTrips(jitterSameSitePath, jitterSameSite); err != nil {
-		return err
-	}
-	if err := output.WriteRouteObservations(routeObservationsPath, routeObservations); err != nil {
-		return err
-	}
-	if err := output.WriteRouteAnomalies(routeAnomaliesPath, routeAnomalies); err != nil {
-		return err
-	}
-	if err := output.WriteAudit(audit, strings.Join(opts.Inputs, ";"), sitesPath, routesPath, opts.ConfigPath, cfg.Timezone, len(points), len(valid), len(jitter), len(siteList), len(routeRules)); err != nil {
-		return err
-	}
+func printProcessGPSResult(res processResult) {
+	fmt.Printf("process gps audit\n")
+	fmt.Printf("input: %s\n", res.Source)
+	fmt.Printf("sites: %s\n", res.SitesSource)
+	fmt.Printf("routes: %s\n", res.RoutesSource)
+	fmt.Printf("config: %s\n", res.ConfigPath)
+	fmt.Printf("timezone: %s\n", res.Timezone)
+	fmt.Printf("raw points: %d\n", len(res.Points))
+	fmt.Printf("valid trips: %d\n", len(res.Valid))
+	fmt.Printf("rejected jitter: %d\n", len(res.Jitter))
+	fmt.Printf("same-site jitter: %d\n", len(res.JitterSameSite))
+	fmt.Printf("loaded sites: %d\n", res.SiteCount)
+	fmt.Printf("loaded routes: %d\n", res.RouteCount)
+	fmt.Printf("route observations: %d\n", len(res.RouteObservations))
+	fmt.Printf("route anomalies: %d\n", len(res.RouteAnomalies))
+	fmt.Printf("generated at: %s\n", time.Now().Format(time.RFC3339))
 
-	fmt.Printf("processed raw points: %d\n", len(points))
-	fmt.Printf("valid trips: %d\n", len(valid))
-	fmt.Printf("rejected jitter: %d\n", len(jitter))
-	fmt.Printf("same-site jitter: %d\n", len(jitterSameSite))
-	fmt.Printf("wrote: %s\n", processed)
-	fmt.Printf("wrote: %s\n", expanded)
-	fmt.Printf("wrote: %s\n", jitterPath)
-	fmt.Printf("wrote: %s\n", jitterSameSitePath)
-	fmt.Printf("wrote: %s\n", routeObservationsPath)
-	fmt.Printf("wrote: %s\n", routeAnomaliesPath)
-	fmt.Printf("wrote: %s\n", audit)
-	return nil
+	if len(res.RouteAnomalies) == 0 {
+		fmt.Printf("errors encountered: 0\n")
+		return
+	}
+	fmt.Printf("errors encountered: %d\n", len(res.RouteAnomalies))
+	for _, a := range res.RouteAnomalies {
+		fmt.Printf("error: trip=%d from=%s to=%s status=%s notes=%s raw_rows=%d-%d\n", a.TripIndex, a.FromSite, a.ToSite, a.Status, a.Notes, a.RawStartRow, a.RawEndRow)
+	}
 }
 
 func splitSameSiteJitter(jitter []gps.Trip) ([]gps.Trip, []gps.Trip) {
