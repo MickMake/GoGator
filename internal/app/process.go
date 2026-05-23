@@ -308,7 +308,14 @@ func buildEngineConfig(cfg config.Config) engine.EngineConfig {
 	return engine.EngineConfig{
 		Enabled:           cfg.Engine.Enabled,
 		CompatibilityMode: cfg.Engine.CompatibilityMode,
-		StayDetection:     cfg.Engine.StayDetection.Enabled,
+		StayDetection: engine.StayConfig{
+			Enabled:                cfg.Engine.StayDetection.Enabled,
+			MinDurationMinutes:     cfg.Engine.StayDetection.MinDurationMinutes,
+			MaxRadiusMeters:        cfg.Engine.StayDetection.MaxRadiusMeters,
+			MinPoints:              cfg.Engine.StayDetection.MinPoints,
+			SiteMatchRadiusMeters:  cfg.Engine.StayDetection.SiteMatchRadiusMeters,
+			GapInferredStopEnabled: cfg.Engine.StayDetection.GapInferredStopEnabled,
+		},
 		Motion: engine.MotionConfig{
 			Enabled:                     cfg.Engine.Motion.Enabled,
 			StationarySpeedThresholdKPH: cfg.Engine.Motion.StationarySpeedThresholdKPH,

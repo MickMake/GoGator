@@ -29,7 +29,14 @@ type Engine struct {
 	Audit             EngineAudit
 }
 
-type EngineStayDetection struct{ Enabled bool }
+type EngineStayDetection struct {
+	Enabled                bool
+	MinDurationMinutes     float64
+	MaxRadiusMeters        float64
+	MinPoints              int
+	SiteMatchRadiusMeters  float64
+	GapInferredStopEnabled bool
+}
 type EngineMotion struct {
 	Enabled                     bool
 	StationarySpeedThresholdKPH float64
@@ -128,7 +135,14 @@ func Default() Config {
 		Engine: Engine{
 			Enabled:           true,
 			CompatibilityMode: true,
-			StayDetection:     EngineStayDetection{Enabled: false},
+			StayDetection: EngineStayDetection{
+				Enabled:                false,
+				MinDurationMinutes:     5,
+				MaxRadiusMeters:        120,
+				MinPoints:              3,
+				SiteMatchRadiusMeters:  100,
+				GapInferredStopEnabled: true,
+			},
 			Motion: EngineMotion{
 				Enabled:                     false,
 				StationarySpeedThresholdKPH: 2,
@@ -289,8 +303,19 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.CompatibilityMode = b(val, cfg.Engine.CompatibilityMode)
 		}
 	case "engine.stay_detection":
-		if key == "enabled" {
+		switch key {
+		case "enabled":
 			cfg.Engine.StayDetection.Enabled = b(val, cfg.Engine.StayDetection.Enabled)
+		case "min_duration_minutes":
+			cfg.Engine.StayDetection.MinDurationMinutes = f(val, cfg.Engine.StayDetection.MinDurationMinutes)
+		case "max_radius_meters", "max_radius_metres":
+			cfg.Engine.StayDetection.MaxRadiusMeters = f(val, cfg.Engine.StayDetection.MaxRadiusMeters)
+		case "min_points":
+			cfg.Engine.StayDetection.MinPoints = i(val, cfg.Engine.StayDetection.MinPoints)
+		case "site_match_radius_meters", "site_match_radius_metres":
+			cfg.Engine.StayDetection.SiteMatchRadiusMeters = f(val, cfg.Engine.StayDetection.SiteMatchRadiusMeters)
+		case "gap_inferred_stop_enabled":
+			cfg.Engine.StayDetection.GapInferredStopEnabled = b(val, cfg.Engine.StayDetection.GapInferredStopEnabled)
 		}
 	case "engine.motion":
 		switch key {

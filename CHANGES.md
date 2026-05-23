@@ -1,5 +1,13 @@
 # Changes
 
+## v0.26.6
+
+- Added passive engine stay/dwell detection with deterministic stationary clustering based on motion state, point quality, duration, radius/spread, point count, and gap evidence.
+- Added structured stay diagnostics (`Stay`, types, confidence, reasons, representative coordinates, durations, and source point traceability) in `engine.Result` without forcing caller adoption.
+- Added optional passive known-site proximity tagging for stays and optional gap-inferred stop diagnostics.
+- Added stay detection config defaults/parsing under `engine.stay_detection` and kept defaults behavior-neutral.
+- Added stay-focused engine tests and run-level parity checks to assert existing valid/jitter/route outputs remain unchanged.
+
 ## v0.26.5
 
 - Added passive engine motion classification with deterministic hysteresis across `Moving`, `Stationary`, `Unknown`, `Gap`, and `Noise` states.

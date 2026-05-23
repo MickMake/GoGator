@@ -61,3 +61,11 @@
 - Conservative hysteresis requires repeated contrary samples before changing between moving and stationary, and tolerates brief uncertainty.
 - Motion remains passive in this release: it does not alter trip construction, important-site collapsing, route application, or CSV output headers.
 - Intended future use: staged stay detection and future trip-building refinements can consume motion diagnostics without changing current compatibility behaviour today.
+
+
+## Passive stay/dwell detection (v0.26.6)
+
+- Added passive stay clustering diagnostics in `engine` using motion state, point quality, duration, point count, radius/spread, and time gaps.
+- Stay diagnostics include types (`SiteStop`, `UnknownStop`, `Pause`, `Traffic`, `PickupCandidate`, `GapInferredStop`, `NoiseCluster`), confidence, reasons, representative coordinates, duration, radius, and source point indexes.
+- Optional site proximity tagging marks stays near known sites as `SiteStop` without changing existing site-collapsing/trip logic.
+- Stay detection remains passive and does not alter trip construction, jitter outputs, routes, or CSV headers in this release.
