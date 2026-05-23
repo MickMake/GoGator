@@ -18,7 +18,7 @@ type Input struct {
 type EngineConfig struct {
 	Enabled           bool
 	CompatibilityMode bool
-	StayDetection     bool
+	StayDetection     StayConfig
 	Motion            MotionConfig
 	Quality           bool
 	Audit             bool
@@ -31,6 +31,7 @@ type Result struct {
 	Points            []gps.RawPoint
 	Evidence          EvidenceSet
 	Motion            MotionEvidence
+	Stays             StayEvidence
 	Valid             []gps.Trip
 	Jitter            []gps.Trip
 	JitterReview      []gps.Trip
