@@ -134,3 +134,17 @@ YYYY-MM-DD
 ```
 
 Use `sites`, not `addresses`, in commands. Address is a field on a site.
+
+
+## Engine diagnostics (optional)
+
+Set in `gogator.yaml` to write optional passive engine CSV diagnostics:
+
+```yaml
+engine:
+  audit:
+    enabled: true
+    output_diagnostics: true
+```
+
+Or enable individual files with `output_points`, `output_motion`, `output_stays`, `output_visits`, `output_excursions`, `output_candidate_trips`, and `output_trip_comparison`.
