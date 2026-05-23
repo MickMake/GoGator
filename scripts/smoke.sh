@@ -56,6 +56,7 @@ log "Build CLI with vendored dependencies"
 
 log "Show command help"
 commands_output="$($BIN commands)"
+assert_contains "$commands_output" "process gps" "commands help"
 assert_contains "$commands_output" "load gator [from] <file...>" "commands help"
 assert_contains "$commands_output" "load google [from] <file...>" "commands help"
 assert_contains "$commands_output" "dump gator [[as] file]" "commands help"
@@ -144,6 +145,14 @@ CSV
   assert_file_not_contains exported-gps.csv "Params JSON"
   assert_file_not_contains exported-gps.csv "First Source File"
   assert_file_not_contains exported-gps.csv "Seen Count"
+
+  process_output="$($BIN process gps)"
+  assert_contains "$process_output" "processed raw points: 2" "process gps"
+  assert_contains "$process_output" "wrote: gogator_processed.csv" "process gps"
+  for generated in gogator_processed.csv gogator_expanded.csv gogator_jitter.csv gogator_jitter_same_site.csv gogator_route_observations.csv gogator_route_anomalies.csv gogator_audit.csv; do
+    test -f "$generated" || fail "process gps did not create $generated"
+  done
+  assert_file_contains gogator_audit.csv "gogator.sqlite"
 
   status_output="$($BIN db status)"
   assert_contains "$status_output" "gps_points: 2" "db status after gator load"
