@@ -77,3 +77,12 @@
 - Added passive excursion modelling for movement legs between ordered visits, including timing windows, duration, approximate leg distance, confidence, reasons, and point traceability.
 - Visit/excursion diagnostics are passive only in this release: they do not alter trip boundaries, important-site collapse, route application, jitter handling, or CSV headers.
 - Intended future use: the replacement trip builder can consume visit/excursion diagnostics once explicitly enabled in a future staged run.
+
+
+## Passive replacement trip-builder prototype (v0.26.8)
+
+- Added passive candidate trip building from visit transitions and excursion evidence.
+- Candidate trips include timing, origin/destination labels, point index boundaries, approximate distance, type classification, confidence, reasons, and quality warnings.
+- Added boundary confidence facets for origin/destination boundaries, movement, GPS quality, gap/noise impact, site matching, and duration plausibility.
+- Added lightweight deterministic comparison diagnostics against legacy valid/jitter trips to support staged audit and migration.
+- Candidate trips and comparisons are diagnostics only and are **not** official output; legacy valid/jitter generation remains unchanged.
