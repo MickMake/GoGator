@@ -1,5 +1,11 @@
 # Changes
 
+## v0.28
+
+- Moved the processing orchestration seam fully into `engine.Run`, keeping file/config loading and output writing in `internal/app/process.go`.
+- Expanded `engine` compatibility tests to assert parity for route application and jitter split outputs through the engine boundary.
+- Updated `engine/README.md` to document the compatibility-wrapper status, future seam intent, and explicit non-goals for this run.
+
 ## v0.27
 
 - Added a new root-level `engine/` package with `engine.Run(ctx, input)` as an isolated processing seam.

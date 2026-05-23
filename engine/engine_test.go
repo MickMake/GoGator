@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"reflect"
+	"slices"
 	"sort"
 	"testing"
 	"time"
@@ -31,16 +32,16 @@ func TestRunMatchesLegacyPipeline(t *testing.T) {
 		mkPoint("a.csv", 4, start.Add(2*time.Minute), -33.0000, 151.0000, 0, map[string]float64{"io24": 0, "io251": 1}),
 	}
 
-	expected := runLegacy(append([]gps.RawPoint(nil), pts...), siteList, rules, cfg)
-	actual, err := Run(context.Background(), Input{Points: pts, Sites: siteList, Routes: rules, Config: cfg})
+	expected := runLegacy(clonePoints(pts), siteList, rules, cfg)
+	actual, err := Run(context.Background(), Input{Points: clonePoints(pts), Sites: siteList, Routes: rules, Config: cfg})
 	if err != nil {
 		t.Fatalf("Run error: %v", err)
 	}
 
-	if !reflect.DeepEqual(actual.Valid, expected.Valid) {
+	if !reflect.DeepEqual(normalizeTrips(actual.Valid), normalizeTrips(expected.Valid)) {
 		t.Fatalf("valid trips mismatch")
 	}
-	if !reflect.DeepEqual(actual.Jitter, expected.Jitter) {
+	if !reflect.DeepEqual(normalizeTrips(actual.Jitter), normalizeTrips(expected.Jitter)) {
 		t.Fatalf("jitter mismatch")
 	}
 	if !reflect.DeepEqual(actual.RouteObservations, expected.RouteObservations) {
@@ -49,6 +50,78 @@ func TestRunMatchesLegacyPipeline(t *testing.T) {
 	if !reflect.DeepEqual(actual.RouteAnomalies, expected.RouteAnomalies) {
 		t.Fatalf("route anomalies mismatch")
 	}
+	if !reflect.DeepEqual(normalizeTrips(actual.JitterReview), normalizeTrips(expected.JitterReview)) {
+		t.Fatalf("jitter review mismatch")
+	}
+	if !reflect.DeepEqual(normalizeTrips(actual.JitterSameSite), normalizeTrips(expected.JitterSameSite)) {
+		t.Fatalf("same-site jitter mismatch")
+	}
+}
+
+func TestRunRoutesAppliedThroughEngineBoundary(t *testing.T) {
+	cfg := config.Default()
+	siteList := []sites.Site{
+		{Name: "Alpha", Address: "A", Lat: -33.0, Lng: 151.0, RadiusM: 120, MinDestinationMinutes: 1, Important: true},
+		{Name: "Beta", Address: "B", Lat: -33.01, Lng: 151.01, RadiusM: 120, MinDestinationMinutes: 1, Important: true},
+	}
+	rules := []routes.Route{{Name: "Alpha-Beta", FromSite: "Alpha", ToSite: "Beta", DistanceMinKM: 0.2, DistanceMaxKM: 5, DurationMinMin: 1, DurationMaxMin: 30, ConfidenceBoost: "Good"}}
+	start := time.Date(2026, 5, 2, 8, 0, 0, 0, time.UTC)
+	pts := []gps.RawPoint{
+		mkPoint("r.csv", 2, start, -33.0, 151.0, 0, map[string]float64{"io24": 0, "io251": 1}),
+		mkPoint("r.csv", 3, start.Add(1*time.Minute), -33.0, 151.0, 0, map[string]float64{"io24": 0, "io251": 1}),
+		mkPoint("r.csv", 4, start.Add(2*time.Minute), -33.0008, 151.0008, 30, map[string]float64{"io24": 1}),
+		mkPoint("r.csv", 5, start.Add(3*time.Minute), -33.01, 151.01, 0, map[string]float64{"io24": 0, "io251": 1}),
+	}
+
+	res, err := Run(context.Background(), Input{Points: clonePoints(pts), Sites: siteList, Routes: rules, Config: cfg})
+	if err != nil {
+		t.Fatalf("Run error: %v", err)
+	}
+	if len(res.Valid) == 0 {
+		t.Fatalf("expected at least one valid trip")
+	}
+	if len(res.RouteObservations) == 0 {
+		t.Fatalf("expected route observations from engine boundary")
+	}
+}
+
+func clonePoints(in []gps.RawPoint) []gps.RawPoint {
+	out := make([]gps.RawPoint, len(in))
+	for i, p := range in {
+		cp := p
+		if p.Params != nil {
+			cp.Params = make(map[string]string, len(p.Params))
+			for k, v := range p.Params {
+				cp.Params[k] = v
+			}
+		}
+		if p.ParamNums != nil {
+			cp.ParamNums = make(map[string]float64, len(p.ParamNums))
+			for k, v := range p.ParamNums {
+				cp.ParamNums[k] = v
+			}
+		}
+		out[i] = cp
+	}
+	return out
+}
+
+func normalizeTrips(in []gps.Trip) []gps.Trip {
+	out := make([]gps.Trip, len(in))
+	for i, t := range in {
+		cp := t
+		cp.Flags = append([]string(nil), t.Flags...)
+		slices.Sort(cp.Flags)
+		cp.Points = make([]gps.RawPoint, len(t.Points))
+		for j, p := range t.Points {
+			pp := p
+			pp.Flags = append([]string(nil), p.Flags...)
+			slices.Sort(pp.Flags)
+			cp.Points[j] = pp
+		}
+		out[i] = cp
+	}
+	return out
 }
 
 func runLegacy(points []gps.RawPoint, siteList []sites.Site, routeRules []routes.Route, cfg config.Config) Result {
