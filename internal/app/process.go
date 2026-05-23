@@ -43,6 +43,16 @@ type processResult struct {
 	RouteCount        int
 }
 
+type processOutputPaths struct {
+	Expanded          string
+	Processed         string
+	Jitter            string
+	JitterSameSite    string
+	Audit             string
+	RouteObservations string
+	RouteAnomalies    string
+}
+
 func RunProcess(opts Options) error {
 	if len(opts.Inputs) == 0 && opts.Input != "" {
 		opts.Inputs = []string{opts.Input}
@@ -109,7 +119,14 @@ func RunProcessGPS(opts Options) error {
 	res.RoutesSource = "database"
 	res.ConfigPath = opts.ConfigPath
 	res.Timezone = cfg.Timezone
-	printProcessGPSResult(res)
+
+	paths := processPaths("gogator")
+	if err := writeProcessOutputs(paths, res); err != nil {
+		return err
+	}
+	printProcessSummary(res)
+	printProcessWrites(paths)
+	printProcessErrors(res)
 	return nil
 }
 
@@ -188,48 +205,76 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 	if len(opts.Inputs) > 1 {
 		prefix = filepath.Join(filepath.Dir(primaryInput), commonOutputName(opts.Inputs))
 	}
-	expanded := prefix + "_expanded.csv"
-	processed := prefix + "_processed.csv"
-	jitterPath := prefix + "_jitter.csv"
-	jitterSameSitePath := prefix + "_jitter_same_site.csv"
-	audit := prefix + "_audit.csv"
-	routeObservationsPath := prefix + "_route_observations.csv"
-	routeAnomaliesPath := prefix + "_route_anomalies.csv"
-
-	if err := output.WriteExpanded(expanded, res.Points); err != nil {
-		return err
-	}
-	if err := output.WriteTrips(processed, res.Valid); err != nil {
-		return err
-	}
-	if err := output.WriteTrips(jitterPath, res.JitterReview); err != nil {
-		return err
-	}
-	if err := output.WriteTrips(jitterSameSitePath, res.JitterSameSite); err != nil {
-		return err
-	}
-	if err := output.WriteRouteObservations(routeObservationsPath, res.RouteObservations); err != nil {
-		return err
-	}
-	if err := output.WriteRouteAnomalies(routeAnomaliesPath, res.RouteAnomalies); err != nil {
-		return err
-	}
-	if err := output.WriteAudit(audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount); err != nil {
+	paths := processPaths(prefix)
+	if err := writeProcessOutputs(paths, res); err != nil {
 		return err
 	}
 
+	printProcessSummary(res)
+	printProcessWrites(paths)
+	return nil
+}
+
+func processPaths(prefix string) processOutputPaths {
+	return processOutputPaths{
+		Expanded:          prefix + "_expanded.csv",
+		Processed:         prefix + "_processed.csv",
+		Jitter:            prefix + "_jitter.csv",
+		JitterSameSite:    prefix + "_jitter_same_site.csv",
+		Audit:             prefix + "_audit.csv",
+		RouteObservations: prefix + "_route_observations.csv",
+		RouteAnomalies:    prefix + "_route_anomalies.csv",
+	}
+}
+
+func writeProcessOutputs(paths processOutputPaths, res processResult) error {
+	if err := output.WriteExpanded(paths.Expanded, res.Points); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(paths.Processed, res.Valid); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(paths.Jitter, res.JitterReview); err != nil {
+		return err
+	}
+	if err := output.WriteTrips(paths.JitterSameSite, res.JitterSameSite); err != nil {
+		return err
+	}
+	if err := output.WriteRouteObservations(paths.RouteObservations, res.RouteObservations); err != nil {
+		return err
+	}
+	if err := output.WriteRouteAnomalies(paths.RouteAnomalies, res.RouteAnomalies); err != nil {
+		return err
+	}
+	return output.WriteAudit(paths.Audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount)
+}
+
+func printProcessSummary(res processResult) {
 	fmt.Printf("processed raw points: %d\n", len(res.Points))
 	fmt.Printf("valid trips: %d\n", len(res.Valid))
 	fmt.Printf("rejected jitter: %d\n", len(res.Jitter))
 	fmt.Printf("same-site jitter: %d\n", len(res.JitterSameSite))
-	fmt.Printf("wrote: %s\n", processed)
-	fmt.Printf("wrote: %s\n", expanded)
-	fmt.Printf("wrote: %s\n", jitterPath)
-	fmt.Printf("wrote: %s\n", jitterSameSitePath)
-	fmt.Printf("wrote: %s\n", routeObservationsPath)
-	fmt.Printf("wrote: %s\n", routeAnomaliesPath)
-	fmt.Printf("wrote: %s\n", audit)
-	return nil
+}
+
+func printProcessWrites(paths processOutputPaths) {
+	fmt.Printf("wrote: %s\n", paths.Processed)
+	fmt.Printf("wrote: %s\n", paths.Expanded)
+	fmt.Printf("wrote: %s\n", paths.Jitter)
+	fmt.Printf("wrote: %s\n", paths.JitterSameSite)
+	fmt.Printf("wrote: %s\n", paths.RouteObservations)
+	fmt.Printf("wrote: %s\n", paths.RouteAnomalies)
+	fmt.Printf("wrote: %s\n", paths.Audit)
+}
+
+func printProcessErrors(res processResult) {
+	if len(res.RouteAnomalies) == 0 {
+		fmt.Printf("errors encountered: 0\n")
+		return
+	}
+	fmt.Printf("errors encountered: %d\n", len(res.RouteAnomalies))
+	for _, a := range res.RouteAnomalies {
+		fmt.Printf("error: trip=%d from=%s to=%s status=%s notes=%s raw_rows=%d-%d\n", a.TripIndex, a.FromSite, a.ToSite, a.Status, a.Notes, a.RawStartRow, a.RawEndRow)
+	}
 }
 
 func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules []routes.Route, cfg config.Config) processResult {
@@ -260,33 +305,6 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 		RouteAnomalies:    routeAnomalies,
 		SiteCount:         len(siteList),
 		RouteCount:        len(routeRules),
-	}
-}
-
-func printProcessGPSResult(res processResult) {
-	fmt.Printf("process gps audit\n")
-	fmt.Printf("input: %s\n", res.Source)
-	fmt.Printf("sites: %s\n", res.SitesSource)
-	fmt.Printf("routes: %s\n", res.RoutesSource)
-	fmt.Printf("config: %s\n", res.ConfigPath)
-	fmt.Printf("timezone: %s\n", res.Timezone)
-	fmt.Printf("raw points: %d\n", len(res.Points))
-	fmt.Printf("valid trips: %d\n", len(res.Valid))
-	fmt.Printf("rejected jitter: %d\n", len(res.Jitter))
-	fmt.Printf("same-site jitter: %d\n", len(res.JitterSameSite))
-	fmt.Printf("loaded sites: %d\n", res.SiteCount)
-	fmt.Printf("loaded routes: %d\n", res.RouteCount)
-	fmt.Printf("route observations: %d\n", len(res.RouteObservations))
-	fmt.Printf("route anomalies: %d\n", len(res.RouteAnomalies))
-	fmt.Printf("generated at: %s\n", time.Now().Format(time.RFC3339))
-
-	if len(res.RouteAnomalies) == 0 {
-		fmt.Printf("errors encountered: 0\n")
-		return
-	}
-	fmt.Printf("errors encountered: %d\n", len(res.RouteAnomalies))
-	for _, a := range res.RouteAnomalies {
-		fmt.Printf("error: trip=%d from=%s to=%s status=%s notes=%s raw_rows=%d-%d\n", a.TripIndex, a.FromSite, a.ToSite, a.Status, a.Notes, a.RawStartRow, a.RawEndRow)
 	}
 }
 
