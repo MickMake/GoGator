@@ -36,12 +36,20 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	if motionCfg.Enabled {
 		motion = classifyMotion(evidence.Points, motionCfg)
 	}
+	visitsCfg := in.EngineConfig.Visits
+	excCfg := in.EngineConfig.Excursions
+	if in.EngineConfig == (EngineConfig{}) {
+		visitsCfg = VisitConfig{Enabled: in.Config.Engine.Visits.Enabled, MinVisitDurationMinutes: in.Config.Engine.Visits.MinVisitDurationMinutes}
+		excCfg = ExcursionConfig{Enabled: in.Config.Engine.Excursions.Enabled, ShortOutAndBackMaxMinutes: in.Config.Engine.Excursions.ShortOutAndBackMaxMinutes, ShortOutAndBackMaxDistance: in.Config.Engine.Excursions.ShortOutAndBackMaxDistanceMeters}
+	}
 	stays := detectStays(evidence.Points, motion, in.Sites, stayCfg)
+	visits := detectVisits(stays, in.Sites, visitsCfg)
+	excursions := detectExcursions(visits, excCfg)
 	adapter.SortAndRecalculate(points)
 	points = adapter.Classify(points, in)
 	valid, jitter := adapter.BuildTrips(points, in)
 	valid, jitter = adapter.ApplyImportant(valid, jitter, in)
 	valid, observations, anomalies := adapter.ApplyRoutes(valid, in)
 	review, sameSite := adapter.SplitJitter(jitter)
-	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
+	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
 }

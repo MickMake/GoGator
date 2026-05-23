@@ -24,6 +24,8 @@ type Engine struct {
 	Enabled           bool
 	CompatibilityMode bool
 	StayDetection     EngineStayDetection
+	Visits            EngineVisits
+	Excursions        EngineExcursions
 	Motion            EngineMotion
 	Quality           EngineQuality
 	Audit             EngineAudit
@@ -36,6 +38,15 @@ type EngineStayDetection struct {
 	MinPoints              int
 	SiteMatchRadiusMeters  float64
 	GapInferredStopEnabled bool
+}
+type EngineVisits struct {
+	Enabled                 bool
+	MinVisitDurationMinutes float64
+}
+type EngineExcursions struct {
+	Enabled                          bool
+	ShortOutAndBackMaxMinutes        float64
+	ShortOutAndBackMaxDistanceMeters float64
 }
 type EngineMotion struct {
 	Enabled                     bool
@@ -143,6 +154,8 @@ func Default() Config {
 				SiteMatchRadiusMeters:  100,
 				GapInferredStopEnabled: true,
 			},
+			Visits:     EngineVisits{Enabled: false, MinVisitDurationMinutes: 5},
+			Excursions: EngineExcursions{Enabled: false, ShortOutAndBackMaxMinutes: 20, ShortOutAndBackMaxDistanceMeters: 5000},
 			Motion: EngineMotion{
 				Enabled:                     false,
 				StationarySpeedThresholdKPH: 2,
@@ -316,6 +329,23 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.StayDetection.SiteMatchRadiusMeters = f(val, cfg.Engine.StayDetection.SiteMatchRadiusMeters)
 		case "gap_inferred_stop_enabled":
 			cfg.Engine.StayDetection.GapInferredStopEnabled = b(val, cfg.Engine.StayDetection.GapInferredStopEnabled)
+		}
+
+	case "engine.visits":
+		switch key {
+		case "enabled":
+			cfg.Engine.Visits.Enabled = b(val, cfg.Engine.Visits.Enabled)
+		case "min_visit_duration_minutes":
+			cfg.Engine.Visits.MinVisitDurationMinutes = f(val, cfg.Engine.Visits.MinVisitDurationMinutes)
+		}
+	case "engine.excursions":
+		switch key {
+		case "enabled":
+			cfg.Engine.Excursions.Enabled = b(val, cfg.Engine.Excursions.Enabled)
+		case "short_out_and_back_max_minutes":
+			cfg.Engine.Excursions.ShortOutAndBackMaxMinutes = f(val, cfg.Engine.Excursions.ShortOutAndBackMaxMinutes)
+		case "short_out_and_back_max_distance_meters", "short_out_and_back_max_distance_metres":
+			cfg.Engine.Excursions.ShortOutAndBackMaxDistanceMeters = f(val, cfg.Engine.Excursions.ShortOutAndBackMaxDistanceMeters)
 		}
 	case "engine.motion":
 		switch key {

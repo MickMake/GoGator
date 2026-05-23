@@ -69,3 +69,11 @@
 - Stay diagnostics include types (`SiteStop`, `UnknownStop`, `Pause`, `Traffic`, `PickupCandidate`, `GapInferredStop`, `NoiseCluster`), confidence, reasons, representative coordinates, duration, radius, and source point indexes.
 - Optional site proximity tagging marks stays near known sites as `SiteStop` without changing existing site-collapsing/trip logic.
 - Stay detection remains passive and does not alter trip construction, jitter outputs, routes, or CSV headers in this release.
+
+
+## Passive visit and excursion diagnostics (v0.26.7)
+
+- Added passive visit modelling derived from detected stays. Visits carry timing, representative coordinates, stay linkage, optional known-site match, confidence, reasons, and point traceability.
+- Added passive excursion modelling for movement legs between ordered visits, including timing windows, duration, approximate leg distance, confidence, reasons, and point traceability.
+- Visit/excursion diagnostics are passive only in this release: they do not alter trip boundaries, important-site collapse, route application, jitter handling, or CSV headers.
+- Intended future use: the replacement trip builder can consume visit/excursion diagnostics once explicitly enabled in a future staged run.
