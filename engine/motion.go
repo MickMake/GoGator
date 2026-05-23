@@ -71,7 +71,6 @@ func classifyMotion(points []PointEvidence, cfg MotionConfig) MotionEvidence {
 	for i, p := range points {
 		state, reason := classifyInstantMotion(i, points, cfg)
 		if state == MotionGap || state == MotionNoise {
-			active = state
 			pending = MotionUnknown
 			pendingCount = 0
 		} else if state == MotionUnknown {
@@ -101,6 +100,9 @@ func classifyMotion(points []PointEvidence, cfg MotionConfig) MotionEvidence {
 		}
 
 		effective := active
+		if state == MotionGap || state == MotionNoise {
+			effective = state
+		}
 		if active != MotionGap && active != MotionNoise && state == MotionUnknown {
 			effective = active
 		}

@@ -93,7 +93,7 @@ func detectStays(points []PointEvidence, motion MotionEvidence, siteList []sites
 			continue
 		}
 		cluster := sampleWindow(points, seg.StartIndex, seg.EndIndex)
-		if len(cluster) == 0 {
+		if len(cluster) < cfg.MinPoints {
 			continue
 		}
 		stay := summarizeStay(cluster, cfg)

@@ -116,7 +116,10 @@ func RunProcessGPS(opts Options) error {
 		fmt.Fprintf(os.Stderr, "loaded routes: %d from database\n", len(routeRules))
 	}
 
-	res := runProcessPipeline(points, siteList, routeRules, cfg)
+	res, err := runProcessPipeline(points, siteList, routeRules, cfg)
+	if err != nil {
+		return err
+	}
 	res.Source = "gogator.sqlite"
 	res.SitesSource = "database"
 	res.RoutesSource = "database"
@@ -197,7 +200,10 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 		}
 		points = append(points, pts...)
 	}
-	res := runProcessPipeline(points, siteList, routeRules, cfg)
+	res, err := runProcessPipeline(points, siteList, routeRules, cfg)
+	if err != nil {
+		return err
+	}
 	res.Source = strings.Join(opts.Inputs, ";")
 	res.SitesSource = sitesPath
 	res.RoutesSource = routesPath
@@ -280,8 +286,10 @@ func printProcessErrors(res processResult) {
 	}
 }
 
-func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules []routes.Route, cfg config.Config) processResult {
-	result, err := engine.Run(context.Background(), engine.Input{
+var runEngine = engine.Run
+
+func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules []routes.Route, cfg config.Config) (processResult, error) {
+	result, err := runEngine(context.Background(), engine.Input{
 		Points:       points,
 		Sites:        siteList,
 		Routes:       routeRules,
@@ -289,7 +297,7 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 		EngineConfig: buildEngineConfig(cfg),
 	})
 	if err != nil {
-		return processResult{}
+		return processResult{}, fmt.Errorf("run engine pipeline: %w", err)
 	}
 	return processResult{
 		Points:            result.Points,
@@ -301,7 +309,7 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 		RouteAnomalies:    result.RouteAnomalies,
 		SiteCount:         result.SiteCount,
 		RouteCount:        result.RouteCount,
-	}
+	}, nil
 }
 
 func buildEngineConfig(cfg config.Config) engine.EngineConfig {

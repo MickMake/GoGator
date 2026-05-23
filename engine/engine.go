@@ -31,6 +31,7 @@ func Run(ctx context.Context, in Input) (Result, error) {
 			GapInferredStopEnabled: in.Config.Engine.StayDetection.GapInferredStopEnabled,
 		}
 	}
+	adapter.SortAndRecalculate(points)
 	evidence := buildEvidence(points, enableQuality)
 	motion := MotionEvidence{}
 	if motionCfg.Enabled {
@@ -45,7 +46,6 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	stays := detectStays(evidence.Points, motion, in.Sites, stayCfg)
 	visits := detectVisits(stays, in.Sites, visitsCfg)
 	excursions := detectExcursions(visits, excCfg)
-	adapter.SortAndRecalculate(points)
 	points = adapter.Classify(points, in)
 	valid, jitter := adapter.BuildTrips(points, in)
 	valid, jitter = adapter.ApplyImportant(valid, jitter, in)
