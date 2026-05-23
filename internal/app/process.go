@@ -316,6 +316,8 @@ func buildEngineConfig(cfg config.Config) engine.EngineConfig {
 			SiteMatchRadiusMeters:  cfg.Engine.StayDetection.SiteMatchRadiusMeters,
 			GapInferredStopEnabled: cfg.Engine.StayDetection.GapInferredStopEnabled,
 		},
+		Visits:     engine.VisitConfig{Enabled: cfg.Engine.Visits.Enabled, MinVisitDurationMinutes: cfg.Engine.Visits.MinVisitDurationMinutes},
+		Excursions: engine.ExcursionConfig{Enabled: cfg.Engine.Excursions.Enabled, ShortOutAndBackMaxMinutes: cfg.Engine.Excursions.ShortOutAndBackMaxMinutes, ShortOutAndBackMaxDistance: cfg.Engine.Excursions.ShortOutAndBackMaxDistanceMeters},
 		Motion: engine.MotionConfig{
 			Enabled:                     cfg.Engine.Motion.Enabled,
 			StationarySpeedThresholdKPH: cfg.Engine.Motion.StationarySpeedThresholdKPH,

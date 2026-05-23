@@ -1,5 +1,12 @@
 # Changes
 
+## v0.26.7
+
+- Added passive engine visit modelling from detected stays, including known-site/unknown/pause/noise/home/supplier classifications, confidence, reasons, and stay traceability.
+- Added passive engine excursion modelling between visits with movement-leg diagnostics, duration/distance estimates, confidence, and short out-and-back/supplier/gap-affected candidate tagging.
+- Added engine config toggles for visits/excursions and safe defaults that preserve existing trip pipeline behaviour.
+- Added tests for deterministic visit/excursion classification and compatibility parity to ensure valid/jitter/route outputs remain unchanged.
+
 ## v0.26.6
 
 - Added passive engine stay/dwell detection with deterministic stationary clustering based on motion state, point quality, duration, radius/spread, point count, and gap evidence.

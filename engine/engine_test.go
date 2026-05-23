@@ -104,6 +104,8 @@ func TestRunDefaultEngineConfigIsBehaviorNeutral(t *testing.T) {
 			Enabled:           cfg.Engine.Enabled,
 			CompatibilityMode: cfg.Engine.CompatibilityMode,
 			StayDetection:     StayConfig{Enabled: cfg.Engine.StayDetection.Enabled, MinDurationMinutes: cfg.Engine.StayDetection.MinDurationMinutes, MaxRadiusMeters: cfg.Engine.StayDetection.MaxRadiusMeters, MinPoints: cfg.Engine.StayDetection.MinPoints, SiteMatchRadiusMeters: cfg.Engine.StayDetection.SiteMatchRadiusMeters, GapInferredStopEnabled: cfg.Engine.StayDetection.GapInferredStopEnabled},
+			Visits:            VisitConfig{Enabled: cfg.Engine.Visits.Enabled, MinVisitDurationMinutes: cfg.Engine.Visits.MinVisitDurationMinutes},
+			Excursions:        ExcursionConfig{Enabled: cfg.Engine.Excursions.Enabled, ShortOutAndBackMaxMinutes: cfg.Engine.Excursions.ShortOutAndBackMaxMinutes, ShortOutAndBackMaxDistance: cfg.Engine.Excursions.ShortOutAndBackMaxDistanceMeters},
 			Motion:            MotionConfig{Enabled: cfg.Engine.Motion.Enabled, StationarySpeedThresholdKPH: cfg.Engine.Motion.StationarySpeedThresholdKPH, MovingSpeedThresholdKPH: cfg.Engine.Motion.MovingSpeedThresholdKPH, GapThresholdMinutes: cfg.Engine.Motion.GapThresholdMinutes, MinConsecutiveSamples: cfg.Engine.Motion.MinConsecutiveSamples},
 			Quality:           cfg.Engine.Quality.Enabled,
 			Audit:             cfg.Engine.Audit.Enabled,
