@@ -42,3 +42,13 @@
 - No trip-detection algorithm rewrite.
 - No CSV schema/header changes.
 - Valhalla, H3, and PostGIS are intentionally inactive and not required for build/test/runtime.
+
+
+## Passive evidence and quality scoring (v0.26.4)
+
+- `engine.Run` now extracts passive per-point evidence into `engine.Result.Evidence`.
+- Evidence captures tracker signal fields when present (`io24`, `io251`, `io14`, `pdop`, `gpslev`, `gsmlev`, `g0`, `g1`, `g2`, `io247`, `io253`, `io303`) and tolerates missing fields safely.
+- A deterministic point quality score is available with bands: `Good`, `Usable`, `Poor`, `Invalid`, `Unknown`.
+- Quality scoring is passive instrumentation only for now: it does not alter trip boundaries, jitter handling, route application, important-site collapse, or CSV output schemas.
+- `engine.quality.enabled` acts as a passive switch for scoring. When disabled, quality remains `Unknown` while evidence extraction still runs.
+- Intended future use: motion/stay/trip stages may consume this evidence, but this release keeps compatibility-first behaviour unchanged.

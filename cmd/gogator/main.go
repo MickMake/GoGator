@@ -14,7 +14,7 @@ import (
 )
 
 const appName = "gogator"
-const version = "v0.26.3"
+const version = "v0.26.4"
 
 var errUsage = errors.New("usage error")
 

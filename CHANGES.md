@@ -1,5 +1,13 @@
 # Changes
 
+## v0.26.4
+
+- Added passive engine evidence extraction for per-point tracker signals in the new engine evidence model (`PointEvidence`, `SignalEvidence`, `EvidenceSet`) without changing current trip decisions.
+- Added deterministic passive point quality scoring (`QualityScore`, `QualityReason`) with `Good`/`Usable`/`Poor`/`Invalid`/`Unknown` bands and conservative checks for coordinate validity, GPS quality hints, timestamp continuity, and implausible jumps.
+- Wired passive evidence into `engine.Result` so callers can inspect diagnostics without requiring adoption; existing process/CSV/route behaviour remains unchanged.
+- Added engine tests covering missing signal fields, quality classifications, duplicate timestamp handling, determinism, and passive run parity.
+- Updated engine documentation for passive instrumentation and clarified future staged use by motion/stay/trip logic.
+
 ## v0.26.3
 
 - Added engine configuration scaffolding with safe defaults for `engine`, `engine.stay_detection`, `engine.motion`, `engine.quality`, `engine.audit`, `valhalla`, `h3`, and `postgis`.
