@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"context"
+
+	"gogator/engine"
 	"gogator/internal/config"
 	"gogator/internal/gps"
 	"gogator/internal/output"
@@ -278,49 +281,21 @@ func printProcessErrors(res processResult) {
 }
 
 func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules []routes.Route, cfg config.Config) processResult {
-	sort.SliceStable(points, func(i, j int) bool {
-		if points[i].Time.Equal(points[j].Time) {
-			if points[i].SourceFile == points[j].SourceFile {
-				return points[i].RawRow < points[j].RawRow
-			}
-			return points[i].SourceFile < points[j].SourceFile
-		}
-		return points[i].Time.Before(points[j].Time)
-	})
-	gps.RecalculatePointDeltas(points)
-
-	points = gps.Classify(points, cfg)
-	valid, jitter := gps.BuildTrips(points, cfg, siteList)
-	valid, jitter = gps.CollapseToImportantSites(valid, jitter, cfg, siteList)
-	valid, routeObservations, routeAnomalies := routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
-	jitterReview, jitterSameSite := splitSameSiteJitter(jitter)
-
+	result, err := engine.Run(context.Background(), engine.Input{Points: points, Sites: siteList, Routes: routeRules, Config: cfg})
+	if err != nil {
+		return processResult{}
+	}
 	return processResult{
-		Points:            points,
-		Valid:             valid,
-		Jitter:            jitter,
-		JitterReview:      jitterReview,
-		JitterSameSite:    jitterSameSite,
-		RouteObservations: routeObservations,
-		RouteAnomalies:    routeAnomalies,
-		SiteCount:         len(siteList),
-		RouteCount:        len(routeRules),
+		Points:            result.Points,
+		Valid:             result.Valid,
+		Jitter:            result.Jitter,
+		JitterReview:      result.JitterReview,
+		JitterSameSite:    result.JitterSameSite,
+		RouteObservations: result.RouteObservations,
+		RouteAnomalies:    result.RouteAnomalies,
+		SiteCount:         result.SiteCount,
+		RouteCount:        result.RouteCount,
 	}
-}
-
-func splitSameSiteJitter(jitter []gps.Trip) ([]gps.Trip, []gps.Trip) {
-	var review []gps.Trip
-	var sameSite []gps.Trip
-	for _, t := range jitter {
-		from := strings.TrimSpace(t.DepartureSite)
-		to := strings.TrimSpace(t.DestinationSite)
-		if from != "" && to != "" && strings.EqualFold(from, to) {
-			sameSite = append(sameSite, t)
-			continue
-		}
-		review = append(review, t)
-	}
-	return review, sameSite
 }
 
 func commonOutputName(inputs []string) string {
