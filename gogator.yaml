@@ -30,4 +30,4 @@ site_matching:
 
 raw_time:
   source: gator_raw_utc_plus_one_day
-  correction_hours: -24
+  correction_hours: 0
