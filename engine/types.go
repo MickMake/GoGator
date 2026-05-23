@@ -29,6 +29,7 @@ type EngineConfig struct {
 
 type Result struct {
 	Points            []gps.RawPoint
+	Evidence          EvidenceSet
 	Valid             []gps.Trip
 	Jitter            []gps.Trip
 	JitterReview      []gps.Trip
