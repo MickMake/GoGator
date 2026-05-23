@@ -29,5 +29,26 @@ site_matching:
   home_site_name: Home
 
 raw_time:
-  source: gator_raw_utc_plus_one_day
-  correction_hours: -24
+  source: gator_raw_utc
+  correction_hours: 0
+
+engine:
+  enabled: true
+  compatibility_mode: true
+  stay_detection:
+    enabled: false
+  motion:
+    enabled: false
+  quality:
+    enabled: false
+  audit:
+    enabled: false
+
+valhalla:
+  enabled: false
+
+h3:
+  enabled: false
+
+postgis:
+  enabled: false
