@@ -30,6 +30,7 @@ type Options struct {
 }
 
 type processResult struct {
+	EngineDiagnostics engine.Diagnostics
 	Source            string
 	SitesSource       string
 	RoutesSource      string
@@ -44,9 +45,17 @@ type processResult struct {
 	RouteAnomalies    []routes.Anomaly
 	SiteCount         int
 	RouteCount        int
+	Config            config.Config
 }
 
 type processOutputPaths struct {
+	EnginePoints      string
+	EngineMotion      string
+	EngineStays       string
+	EngineVisits      string
+	EngineExcursions  string
+	EngineCandidate   string
+	EngineComparison  string
 	Expanded          string
 	Processed         string
 	Jitter            string
@@ -233,6 +242,13 @@ func processPaths(prefix string) processOutputPaths {
 		Audit:             prefix + "_audit.csv",
 		RouteObservations: prefix + "_route_observations.csv",
 		RouteAnomalies:    prefix + "_route_anomalies.csv",
+		EnginePoints:      prefix + "_engine_points.csv",
+		EngineMotion:      prefix + "_engine_motion.csv",
+		EngineStays:       prefix + "_engine_stays.csv",
+		EngineVisits:      prefix + "_engine_visits.csv",
+		EngineExcursions:  prefix + "_engine_excursions.csv",
+		EngineCandidate:   prefix + "_engine_candidate_trips.csv",
+		EngineComparison:  prefix + "_engine_trip_comparison.csv",
 	}
 }
 
@@ -255,7 +271,10 @@ func writeProcessOutputs(paths processOutputPaths, res processResult) error {
 	if err := output.WriteRouteAnomalies(paths.RouteAnomalies, res.RouteAnomalies); err != nil {
 		return err
 	}
-	return output.WriteAudit(paths.Audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount)
+	if err := output.WriteAudit(paths.Audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount); err != nil {
+		return err
+	}
+	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison})
 }
 
 func printProcessSummary(res processResult) {
@@ -309,6 +328,8 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 		RouteAnomalies:    result.RouteAnomalies,
 		SiteCount:         result.SiteCount,
 		RouteCount:        result.RouteCount,
+		EngineDiagnostics: result.Diagnostics(),
+		Config:            cfg,
 	}, nil
 }
 

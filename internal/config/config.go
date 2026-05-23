@@ -65,7 +65,17 @@ type EngineMotion struct {
 	MinConsecutiveSamples       int
 }
 type EngineQuality struct{ Enabled bool }
-type EngineAudit struct{ Enabled bool }
+type EngineAudit struct {
+	Enabled              bool
+	OutputDiagnostics    bool
+	OutputPoints         bool
+	OutputMotion         bool
+	OutputStays          bool
+	OutputVisits         bool
+	OutputExcursions     bool
+	OutputCandidateTrips bool
+	OutputTripComparison bool
+}
 type Valhalla struct{ Enabled bool }
 type H3 struct{ Enabled bool }
 type PostGIS struct{ Enabled bool }
@@ -174,7 +184,7 @@ func Default() Config {
 				MinConsecutiveSamples:       2,
 			},
 			Quality: EngineQuality{Enabled: false},
-			Audit:   EngineAudit{Enabled: false},
+			Audit:   EngineAudit{Enabled: false, OutputDiagnostics: false, OutputPoints: false, OutputMotion: false, OutputStays: false, OutputVisits: false, OutputExcursions: false, OutputCandidateTrips: false, OutputTripComparison: false},
 		},
 		Valhalla: Valhalla{Enabled: false},
 		H3:       H3{Enabled: false},
@@ -405,8 +415,25 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.Quality.Enabled = b(val, cfg.Engine.Quality.Enabled)
 		}
 	case "engine.audit":
-		if key == "enabled" {
+		switch key {
+		case "enabled":
 			cfg.Engine.Audit.Enabled = b(val, cfg.Engine.Audit.Enabled)
+		case "output_diagnostics":
+			cfg.Engine.Audit.OutputDiagnostics = b(val, cfg.Engine.Audit.OutputDiagnostics)
+		case "output_points":
+			cfg.Engine.Audit.OutputPoints = b(val, cfg.Engine.Audit.OutputPoints)
+		case "output_motion":
+			cfg.Engine.Audit.OutputMotion = b(val, cfg.Engine.Audit.OutputMotion)
+		case "output_stays":
+			cfg.Engine.Audit.OutputStays = b(val, cfg.Engine.Audit.OutputStays)
+		case "output_visits":
+			cfg.Engine.Audit.OutputVisits = b(val, cfg.Engine.Audit.OutputVisits)
+		case "output_excursions":
+			cfg.Engine.Audit.OutputExcursions = b(val, cfg.Engine.Audit.OutputExcursions)
+		case "output_candidate_trips":
+			cfg.Engine.Audit.OutputCandidateTrips = b(val, cfg.Engine.Audit.OutputCandidateTrips)
+		case "output_trip_comparison":
+			cfg.Engine.Audit.OutputTripComparison = b(val, cfg.Engine.Audit.OutputTripComparison)
 		}
 	case "valhalla":
 		if key == "enabled" {

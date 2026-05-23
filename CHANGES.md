@@ -1,5 +1,11 @@
 # Changes
 
+## v0.26.9
+
+- Added optional engine diagnostic CSV outputs for passive engine stages (points, motion, stays, visits, excursions, candidate trips, and trip comparison) behind `engine.audit` toggles.
+- Diagnostics are disabled by default; existing processed/expanded/jitter/route/audit outputs remain unchanged unless explicitly enabled.
+- Added engine/output tests covering default-disabled behaviour and diagnostic header writing.
+
 ## v0.26.8
 
 - Added a passive replacement trip-builder prototype in `engine` that derives candidate trips from visit/excursion diagnostics with deterministic type, confidence, reason, and boundary-quality annotations.

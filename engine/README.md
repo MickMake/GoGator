@@ -86,3 +86,11 @@
 - Added boundary confidence facets for origin/destination boundaries, movement, GPS quality, gap/noise impact, site matching, and duration plausibility.
 - Added lightweight deterministic comparison diagnostics against legacy valid/jitter trips to support staged audit and migration.
 - Candidate trips and comparisons are diagnostics only and are **not** official output; legacy valid/jitter generation remains unchanged.
+
+
+## Optional engine diagnostics output (v0.26.9)
+
+- `engine` now exposes a read-only `Result.Diagnostics()` snapshot for output writers.
+- `internal/output` can write optional `*_engine_*.csv` diagnostics for passive stages: points, motion, stays, visits, excursions, candidate trips, and trip comparison.
+- Diagnostics are disabled by default. Enable with `engine.audit.enabled: true` plus either `engine.audit.output_diagnostics: true` (all) or per-file toggles.
+- Legacy-compatible processed trip output remains the official output path in this release.
