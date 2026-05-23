@@ -10,11 +10,11 @@ import (
 )
 
 type EngineDiagnosticPaths struct {
-	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison string
+	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison, ShadowSummary, ShadowMismatches string
 }
 
 type EngineDiagnosticOptions struct {
-	Enabled, OutputDiagnostics, OutputPoints, OutputMotion, OutputStays, OutputVisits, OutputExcursions, OutputCandidateTrips, OutputTripComparison bool
+	Enabled, OutputDiagnostics, OutputPoints, OutputMotion, OutputStays, OutputVisits, OutputExcursions, OutputCandidateTrips, OutputTripComparison, OutputShadowSummary, OutputShadowMismatches bool
 }
 
 func WriteEngineDiagnostics(diag engine.Diagnostics, paths EngineDiagnosticPaths, o EngineDiagnosticOptions) error {
@@ -54,6 +54,16 @@ func WriteEngineDiagnostics(diag engine.Diagnostics, paths EngineDiagnosticPaths
 	}
 	if all || o.OutputTripComparison {
 		if err := writeTripComparison(paths.TripComparison, diag.TripComparison); err != nil {
+			return err
+		}
+	}
+	if all || o.OutputShadowSummary {
+		if err := writeShadowSummary(paths.ShadowSummary, diag.ShadowSummary); err != nil {
+			return err
+		}
+	}
+	if all || o.OutputShadowMismatches {
+		if err := writeShadowMismatches(paths.ShadowMismatches, diag.ShadowSummary.Mismatches); err != nil {
 			return err
 		}
 	}
@@ -198,6 +208,35 @@ func writeTripComparison(path string, r engine.CandidateTripComparison) error {
 	rows := [][]string{{"candidate_trip_count", itoa(r.CandidateTripCount), ""}, {"legacy_valid_trip_count", itoa(r.LegacyValidTripCount), ""}, {"legacy_jitter_trip_count", itoa(r.LegacyJitterTripCount), ""}, {"approx_matched_trips", itoa(r.ApproxMatchedTrips), ""}}
 	for _, row := range rows {
 		if err := w.Write(row); err != nil {
+			return err
+		}
+	}
+	return flushClose(w, f)
+}
+
+func writeShadowSummary(path string, s engine.ShadowSummary) error {
+	w, f, err := createCSV(path, []string{"metric", "value", "severity", "notes"})
+	if err != nil {
+		return err
+	}
+	for _, m := range s.Metrics {
+		if err := w.Write([]string{m.Name, m.Value, string(m.Severity), m.Notes}); err != nil {
+			return err
+		}
+	}
+	return flushClose(w, f)
+}
+func writeShadowMismatches(path string, mm []engine.ShadowMismatch) error {
+	w, f, err := createCSV(path, []string{"mismatch_id", "mismatch_type", "severity", "legacy_start", "legacy_end", "candidate_start", "candidate_end", "delta_minutes", "notes"})
+	if err != nil {
+		return err
+	}
+	for i, m := range mm {
+		id := m.ID
+		if id == "" {
+			id = itoa(i + 1)
+		}
+		if err := w.Write([]string{id, m.Type, string(m.Severity), fmtTime(m.LegacyStart), fmtTime(m.LegacyEnd), fmtTime(m.CandidateStart), fmtTime(m.CandidateEnd), ftoa(m.DeltaMinutes, 2), m.Notes}); err != nil {
 			return err
 		}
 	}

@@ -94,3 +94,12 @@
 - `internal/output` can write optional `*_engine_*.csv` diagnostics for passive stages: points, motion, stays, visits, excursions, candidate trips, and trip comparison.
 - Diagnostics are disabled by default. Enable with `engine.audit.enabled: true` plus either `engine.audit.output_diagnostics: true` (all) or per-file toggles.
 - Legacy-compatible processed trip output remains the official output path in this release.
+
+
+## Shadow comparison summary (v0.26.10)
+
+When `engine.trip_builder.compare_legacy` plus `engine.shadow.enabled` and `engine.shadow.summary_enabled` are enabled, the engine computes a passive shadow summary comparing candidate trips to legacy valid trips using deterministic time-window matching.
+
+Readiness ratings: `NotEvaluated`, `PoorMatch`, `PartialMatch`, `GoodMatch`, `ExcellentMatch`.
+
+Mismatch rows capture unmatched legacy/candidate trips, boundary drift severity, and site-label disagreement evidence where labels are available. This helps judge replacement readiness without changing official trip output.

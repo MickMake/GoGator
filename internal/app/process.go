@@ -49,20 +49,22 @@ type processResult struct {
 }
 
 type processOutputPaths struct {
-	EnginePoints      string
-	EngineMotion      string
-	EngineStays       string
-	EngineVisits      string
-	EngineExcursions  string
-	EngineCandidate   string
-	EngineComparison  string
-	Expanded          string
-	Processed         string
-	Jitter            string
-	JitterSameSite    string
-	Audit             string
-	RouteObservations string
-	RouteAnomalies    string
+	EnginePoints           string
+	EngineMotion           string
+	EngineStays            string
+	EngineVisits           string
+	EngineExcursions       string
+	EngineCandidate        string
+	EngineComparison       string
+	EngineShadowSummary    string
+	EngineShadowMismatches string
+	Expanded               string
+	Processed              string
+	Jitter                 string
+	JitterSameSite         string
+	Audit                  string
+	RouteObservations      string
+	RouteAnomalies         string
 }
 
 func RunProcess(opts Options) error {
@@ -235,20 +237,22 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 
 func processPaths(prefix string) processOutputPaths {
 	return processOutputPaths{
-		Expanded:          prefix + "_expanded.csv",
-		Processed:         prefix + "_processed.csv",
-		Jitter:            prefix + "_jitter.csv",
-		JitterSameSite:    prefix + "_jitter_same_site.csv",
-		Audit:             prefix + "_audit.csv",
-		RouteObservations: prefix + "_route_observations.csv",
-		RouteAnomalies:    prefix + "_route_anomalies.csv",
-		EnginePoints:      prefix + "_engine_points.csv",
-		EngineMotion:      prefix + "_engine_motion.csv",
-		EngineStays:       prefix + "_engine_stays.csv",
-		EngineVisits:      prefix + "_engine_visits.csv",
-		EngineExcursions:  prefix + "_engine_excursions.csv",
-		EngineCandidate:   prefix + "_engine_candidate_trips.csv",
-		EngineComparison:  prefix + "_engine_trip_comparison.csv",
+		Expanded:               prefix + "_expanded.csv",
+		Processed:              prefix + "_processed.csv",
+		Jitter:                 prefix + "_jitter.csv",
+		JitterSameSite:         prefix + "_jitter_same_site.csv",
+		Audit:                  prefix + "_audit.csv",
+		RouteObservations:      prefix + "_route_observations.csv",
+		RouteAnomalies:         prefix + "_route_anomalies.csv",
+		EnginePoints:           prefix + "_engine_points.csv",
+		EngineMotion:           prefix + "_engine_motion.csv",
+		EngineStays:            prefix + "_engine_stays.csv",
+		EngineVisits:           prefix + "_engine_visits.csv",
+		EngineExcursions:       prefix + "_engine_excursions.csv",
+		EngineCandidate:        prefix + "_engine_candidate_trips.csv",
+		EngineComparison:       prefix + "_engine_trip_comparison.csv",
+		EngineShadowSummary:    prefix + "_engine_shadow_summary.csv",
+		EngineShadowMismatches: prefix + "_engine_shadow_mismatches.csv",
 	}
 }
 
@@ -274,7 +278,7 @@ func writeProcessOutputs(paths processOutputPaths, res processResult) error {
 	if err := output.WriteAudit(paths.Audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount); err != nil {
 		return err
 	}
-	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison})
+	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison, ShadowSummary: paths.EngineShadowSummary, ShadowMismatches: paths.EngineShadowMismatches}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison, OutputShadowSummary: res.Config.Engine.Audit.OutputShadowSummary, OutputShadowMismatches: res.Config.Engine.Audit.OutputShadowMismatches})
 }
 
 func printProcessSummary(res processResult) {

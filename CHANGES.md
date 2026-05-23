@@ -1,5 +1,11 @@
 # Changes
 
+## v0.26.10
+
+- Added passive shadow-engine comparison summaries with deterministic readiness ratings and mismatch diagnostics (unmatched trips, boundary drift, and optional origin/destination mismatches) for candidate-vs-legacy trip auditing.
+- Added configurable `engine.shadow` thresholds/tolerances and optional diagnostic CSV outputs for shadow summary and mismatch rows, disabled by default.
+- Kept official processed valid/jitter trip outputs unchanged; shadow summary remains advisory-only.
+
 ## v0.26.9
 
 - Added optional engine diagnostic CSV outputs for passive engine stages (points, motion, stays, visits, excursions, candidate trips, and trip comparison) behind `engine.audit` toggles.
