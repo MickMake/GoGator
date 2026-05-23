@@ -39,17 +39,24 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	}
 	visitsCfg := in.EngineConfig.Visits
 	excCfg := in.EngineConfig.Excursions
+	tripBuilderCfg := in.EngineConfig.TripBuilder
 	if in.EngineConfig == (EngineConfig{}) {
 		visitsCfg = VisitConfig{Enabled: in.Config.Engine.Visits.Enabled, MinVisitDurationMinutes: in.Config.Engine.Visits.MinVisitDurationMinutes}
 		excCfg = ExcursionConfig{Enabled: in.Config.Engine.Excursions.Enabled, ShortOutAndBackMaxMinutes: in.Config.Engine.Excursions.ShortOutAndBackMaxMinutes, ShortOutAndBackMaxDistance: in.Config.Engine.Excursions.ShortOutAndBackMaxDistanceMeters}
+		tripBuilderCfg = TripBuilderConfig{Enabled: in.Config.Engine.TripBuilder.Enabled, PassiveOnly: in.Config.Engine.TripBuilder.PassiveOnly, CompareLegacy: in.Config.Engine.TripBuilder.CompareLegacy, MinTripDurationMinutes: in.Config.Engine.TripBuilder.MinTripDurationMinutes, MaxGapMinutes: in.Config.Engine.TripBuilder.MaxGapMinutes, LowConfidenceThreshold: in.Config.Engine.TripBuilder.LowConfidenceThreshold}
 	}
 	stays := detectStays(evidence.Points, motion, in.Sites, stayCfg)
 	visits := detectVisits(stays, in.Sites, visitsCfg)
 	excursions := detectExcursions(visits, excCfg)
+	candidateTrips := detectCandidateTrips(visits, excursions, tripBuilderCfg)
 	points = adapter.Classify(points, in)
 	valid, jitter := adapter.BuildTrips(points, in)
 	valid, jitter = adapter.ApplyImportant(valid, jitter, in)
 	valid, observations, anomalies := adapter.ApplyRoutes(valid, in)
 	review, sameSite := adapter.SplitJitter(jitter)
-	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
+	comparison := CandidateTripComparison{}
+	if tripBuilderCfg.Enabled && tripBuilderCfg.CompareLegacy {
+		comparison = compareCandidateTrips(candidateTrips, valid, jitter)
+	}
+	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, CandidateTrips: candidateTrips, TripComparison: comparison, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
 }

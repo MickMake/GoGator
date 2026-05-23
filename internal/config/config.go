@@ -26,6 +26,7 @@ type Engine struct {
 	StayDetection     EngineStayDetection
 	Visits            EngineVisits
 	Excursions        EngineExcursions
+	TripBuilder       EngineTripBuilder
 	Motion            EngineMotion
 	Quality           EngineQuality
 	Audit             EngineAudit
@@ -47,6 +48,14 @@ type EngineExcursions struct {
 	Enabled                          bool
 	ShortOutAndBackMaxMinutes        float64
 	ShortOutAndBackMaxDistanceMeters float64
+}
+type EngineTripBuilder struct {
+	Enabled                bool
+	PassiveOnly            bool
+	CompareLegacy          bool
+	MinTripDurationMinutes float64
+	MaxGapMinutes          float64
+	LowConfidenceThreshold float64
 }
 type EngineMotion struct {
 	Enabled                     bool
@@ -154,8 +163,9 @@ func Default() Config {
 				SiteMatchRadiusMeters:  100,
 				GapInferredStopEnabled: true,
 			},
-			Visits:     EngineVisits{Enabled: false, MinVisitDurationMinutes: 5},
-			Excursions: EngineExcursions{Enabled: false, ShortOutAndBackMaxMinutes: 20, ShortOutAndBackMaxDistanceMeters: 5000},
+			Visits:      EngineVisits{Enabled: false, MinVisitDurationMinutes: 5},
+			Excursions:  EngineExcursions{Enabled: false, ShortOutAndBackMaxMinutes: 20, ShortOutAndBackMaxDistanceMeters: 5000},
+			TripBuilder: EngineTripBuilder{Enabled: false, PassiveOnly: true, CompareLegacy: false, MinTripDurationMinutes: 1, MaxGapMinutes: 20, LowConfidenceThreshold: 0.4},
 			Motion: EngineMotion{
 				Enabled:                     false,
 				StationarySpeedThresholdKPH: 2,
@@ -361,6 +371,22 @@ func apply(cfg *Config, section, key, val string) {
 		case "short_out_and_back_max_distance_meters", "short_out_and_back_max_distance_metres":
 			cfg.Engine.Excursions.ShortOutAndBackMaxDistanceMeters = f(val, cfg.Engine.Excursions.ShortOutAndBackMaxDistanceMeters)
 		}
+	case "engine.trip_builder":
+		switch key {
+		case "enabled":
+			cfg.Engine.TripBuilder.Enabled = b(val, cfg.Engine.TripBuilder.Enabled)
+		case "passive_only":
+			cfg.Engine.TripBuilder.PassiveOnly = b(val, cfg.Engine.TripBuilder.PassiveOnly)
+		case "compare_legacy":
+			cfg.Engine.TripBuilder.CompareLegacy = b(val, cfg.Engine.TripBuilder.CompareLegacy)
+		case "min_trip_duration_minutes":
+			cfg.Engine.TripBuilder.MinTripDurationMinutes = f(val, cfg.Engine.TripBuilder.MinTripDurationMinutes)
+		case "max_gap_minutes":
+			cfg.Engine.TripBuilder.MaxGapMinutes = f(val, cfg.Engine.TripBuilder.MaxGapMinutes)
+		case "low_confidence_threshold":
+			cfg.Engine.TripBuilder.LowConfidenceThreshold = f(val, cfg.Engine.TripBuilder.LowConfidenceThreshold)
+		}
+
 	case "engine.motion":
 		switch key {
 		case "enabled":

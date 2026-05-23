@@ -21,6 +21,7 @@ type EngineConfig struct {
 	StayDetection     StayConfig
 	Visits            VisitConfig
 	Excursions        ExcursionConfig
+	TripBuilder       TripBuilderConfig
 	Motion            MotionConfig
 	Quality           bool
 	Audit             bool
@@ -36,6 +37,8 @@ type Result struct {
 	Stays             StayEvidence
 	Visits            VisitEvidence
 	Excursions        ExcursionEvidence
+	CandidateTrips    CandidateTripEvidence
+	TripComparison    CandidateTripComparison
 	Valid             []gps.Trip
 	Jitter            []gps.Trip
 	JitterReview      []gps.Trip

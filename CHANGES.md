@@ -1,5 +1,12 @@
 # Changes
 
+## v0.26.8
+
+- Added a passive replacement trip-builder prototype in `engine` that derives candidate trips from visit/excursion diagnostics with deterministic type, confidence, reason, and boundary-quality annotations.
+- Added lightweight candidate-vs-legacy comparison diagnostics for auditing approximate match counts, unmatched trips, boundary-time drift, and site mismatches.
+- Added `engine.trip_builder` config scaffolding with safe defaults (`passive_only: true`) so existing processing behaviour remains unchanged unless explicitly enabled for diagnostics.
+- Added focused tests for candidate trip typing/confidence, deterministic generation, and candidate-vs-legacy comparison while preserving compatibility outputs.
+
 ## v0.26.7.1
 
 - Fixed process pipeline error handling so `gogator process` and `gogator process gps` now propagate `engine.Run` failures instead of silently returning empty success-style outputs.
