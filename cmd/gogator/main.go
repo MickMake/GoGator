@@ -73,7 +73,7 @@ func run(args []string) error {
 
 func process(args []string) error {
 	if len(args) > 0 && args[0] == "gps" {
-		return fmt.Errorf("not implemented yet: process gps")
+		return processGPS(args[1:])
 	}
 	opts := app.Options{ConfigPath: app.DefaultConfigPath()}
 	for i := 0; i < len(args); i++ {
@@ -120,6 +120,36 @@ func process(args []string) error {
 		return fmt.Errorf("%w: usage: %s process <raw-gps.csv> ...", errUsage, appName)
 	}
 	if err := app.RunProcess(opts); err != nil {
+		return fmt.Errorf("error: %w", err)
+	}
+	return nil
+}
+
+func processGPS(args []string) error {
+	opts := app.Options{ConfigPath: app.DefaultConfigPath()}
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch a {
+		case "--timezone":
+			i++
+			if err := requireValue(args, i, a); err != nil {
+				return err
+			}
+			opts.Timezone = args[i]
+		case "--config":
+			i++
+			if err := requireValue(args, i, a); err != nil {
+				return err
+			}
+			opts.ConfigPath = args[i]
+		case "--help", "-h":
+			processGPSHelp()
+			return nil
+		default:
+			return fmt.Errorf("%w: usage: %s process gps [--timezone Australia/Sydney] [--config gogator.yaml]", errUsage, appName)
+		}
+	}
+	if err := app.RunProcessGPS(opts); err != nil {
 		return fmt.Errorf("error: %w", err)
 	}
 	return nil
@@ -477,7 +507,7 @@ Global notes:
 
 Commands:
   process <gps.csv...>                         Process raw GPS CSV files using current file-based workflow.
-  process gps ...                              Planned DB-backed GPS processing.
+  process gps                                  Process loaded SQLite GPS rows and write standard process CSV outputs.
 
   load gator [from] <file...>                  Load Gator tracker CSV/TSV rows into the database.
   load google [from] <file...>                 Planned: load Google tracker/location data.
@@ -519,6 +549,7 @@ Commands:
 Examples:
   %[1]s process raw.csv
   %[1]s process raw.csv --timezone Australia/Sydney
+  %[1]s process gps
   %[1]s db init
   %[1]s db backup as gogator-backup.sqlite
   %[1]s db vacuum
@@ -545,13 +576,27 @@ func commands() {
 func processHelp() {
 	fmt.Printf(`Usage:
   %[1]s process <raw-gps.csv> [more-raw-gps.csv ...] [--timezone Australia/Sydney] [--config gogator.yaml] [--sites sites.csv] [--routes routes.csv]
+  %[1]s process gps [--timezone Australia/Sydney] [--config gogator.yaml]
 
 Intent:
-  Process one or more raw GPS CSV files using the current file-based workflow.
+  Process one or more raw GPS CSV files using the current file-based workflow, or process already-loaded SQLite GPS rows with process gps.
 
 Examples:
   %[1]s process raw.csv
   %[1]s process raw.csv --timezone Australia/Sydney
+  %[1]s process gps
+`, appName)
+}
+
+func processGPSHelp() {
+	fmt.Printf(`Usage:
+  %[1]s process gps [--timezone Australia/Sydney] [--config gogator.yaml]
+
+Intent:
+  Process GPS rows already loaded into gogator.sqlite and write the standard process CSV outputs with the gogator_ prefix.
+
+Examples:
+  %[1]s process gps
 `, appName)
 }
 
