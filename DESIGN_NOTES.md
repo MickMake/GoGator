@@ -123,7 +123,7 @@ Examples:
 - `routes.csv` may pre-populate or export known/approved route records.
 - `gogator.yaml` may define deterministic thresholds and runtime defaults.
 
-The engine must not depend on CSV files as its core processing model.
+The engine depends solely on its SQLite database as its core processing model.
 
 ---
 
