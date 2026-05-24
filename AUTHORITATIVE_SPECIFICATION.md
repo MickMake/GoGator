@@ -40,11 +40,11 @@ These points are fixed project intent.
 5. Existing CLI commands and output files should remain available unless explicitly changed.
 6. Command stability must not preserve old trip-construction internals.
 7. Runtime trip construction must use the GoGator database as the operating model.
-8. CSV/TSV files are import/export/pre-population paths only.
+8. `routes.tsv` & `sites.tsv` TSV files are import/export/pre-population paths only.
 9. Known sites in the GoGator database are the first authority for site matching.
 10. PostGIS is a fallback discovery/context/audit mechanism when no known-site match is found.
 11. Routes are learned from repeated observed behaviour and route evidence, not primarily hand-authored.
-12. `routes.csv` is a pre-population/import/export path only.
+12. `routes.tsv` is a pre-population/import/export path only.
 13. Valhalla is the preferred map-matching/routing engine.
 14. H3 is used for spatial bucketing/signatures where useful.
 15. Every output decision must be auditable.
@@ -110,11 +110,11 @@ They exist for:
 
 Examples:
 
-- `sites.csv` / TSV may pre-populate or export known sites.
-- `routes.csv` may pre-populate or export known/approved route records.
-- `gogator.yaml` may define deterministic thresholds and runtime defaults.
+- `sites.tsv` - may import known sites to the database for use in route matching, or export from the database.
+- `routes.tsv` - may pre-populate known/approved route records used in route matching, or export from the database.
+- `gogator.yaml` - may define deterministic thresholds and runtime defaults.
 
-The engine must not depend on CSV files as its core processing model.
+The engine depends solely on its SQLite database as its core processing model and not on these TSV files.
 
 ---
 
@@ -122,7 +122,7 @@ The engine must not depend on CSV files as its core processing model.
 
 Current user-facing commands and output files should not vanish simply because the engine internals are improved.
 
-The project may keep command names, output filenames, and CSV headers stable while replacing the underlying trip-construction method.
+The project may keep command names, output filenames, and TSV import/export headers stable while replacing the underlying trip-construction method.
 
 Important distinction:
 
@@ -131,7 +131,7 @@ Keep the command/output contract.
 Do not preserve old trip-construction internals as the authority.
 ```
 
-Processed CSV columns are high-stability. Expanded/audit/diagnostic outputs are the better place for new evidence.
+Processed TSV columns are high-stability. Expanded/audit/diagnostic outputs are the better place for new evidence.
 
 ---
 
@@ -520,9 +520,9 @@ Route learning should use:
 - anomaly history
 - time-of-day/context where useful
 
-`routes.csv` is only a pre-population/import/export mechanism. It must not limit the engine to manually curated routes.
+`routes.tsv` is only a pre-population/import/export mechanism. It must not limit the engine to manually curated routes.
 
-A learned route should be auditable and versioned.
+A learned route should be auditable and versioned - the intent is to know "how" and "why" a route entry exists.
 
 ---
 
@@ -726,15 +726,17 @@ Every Codex run must follow these rules.
 
 Before changing code, read:
 
-- `PROJECT_INTENT.md`
-- `DESIGN_NOTES.md`
-- `engine/README.md`
-- `AGENTS.md`
-- `CODEX.md`
-- `COMMANDS.md`
-- relevant engine files
-- relevant store/database files
-- relevant output files
+1. `AUTHORITATIVE_SPECIFICATION.md`
+2. `ROUTE_MAPPING_PROCEDURE.md`
+3. `TRACKER_SIGNALS.md`
+4. `engine/README.md`
+6. `COMMANDS.md`
+7. `AGENTS.md`
+8. `CODEX.md`  
+9. relevant source files
+10. relevant engine files
+11. relevant store/database files
+12. relevant output files
 
 ### Do not drift
 
@@ -743,10 +745,10 @@ Codex must not:
 - make legacy GPS output authoritative
 - use old GPS output as the oracle
 - remove current CLI commands without explicit instruction
-- silently change processed CSV columns
-- make CSV files the runtime model
+- silently change processed TSV import/export columns
+- make TSV import files the runtime model
 - make PostGIS override known-site database matches
-- treat `routes.csv` as the route authority
+- treat `routes.tsv` as the route authority
 - treat routes as site-truth rewrites
 - add one-off rules where an evidence/scoring model is needed
 - hide low-confidence data
