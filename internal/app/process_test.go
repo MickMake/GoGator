@@ -80,12 +80,20 @@ func TestLegacyAndShadowBypassEngineSelectionValidation(t *testing.T) {
 	}
 	cfg := config.Default()
 	cfg.Engine.TripSource = "legacy"
-	if _, err := runProcessPipeline(nil, nil, nil, cfg); err != nil {
+	legacyRes, err := runProcessPipeline(nil, nil, nil, cfg)
+	if err != nil {
 		t.Fatal(err)
 	}
+	if legacyRes.EngineDiagnostics.EngineSelection.RequestedTripSource != "legacy" || legacyRes.EngineDiagnostics.EngineSelection.SelectedTripSource != "legacy" {
+		t.Fatalf("expected legacy selection/requested, got %+v", legacyRes.EngineDiagnostics.EngineSelection)
+	}
 	cfg.Engine.TripSource = "shadow"
-	if _, err := runProcessPipeline(nil, nil, nil, cfg); err != nil {
+	shadowRes, err := runProcessPipeline(nil, nil, nil, cfg)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if shadowRes.EngineDiagnostics.EngineSelection.RequestedTripSource != "shadow" || shadowRes.EngineDiagnostics.EngineSelection.SelectedTripSource != "legacy" {
+		t.Fatalf("expected shadow requested with legacy selected, got %+v", shadowRes.EngineDiagnostics.EngineSelection)
 	}
 }
 
@@ -133,7 +141,7 @@ func TestEngineFallbackSelectionDiagnostics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !res.EngineDiagnostics.EngineSelection.FallbackUsed {
-		t.Fatalf("expected fallback used")
+	if !res.EngineDiagnostics.EngineSelection.FallbackUsed || res.EngineDiagnostics.EngineSelection.SelectedTripSource != "legacy" {
+		t.Fatalf("expected legacy fallback selection, got %+v", res.EngineDiagnostics.EngineSelection)
 	}
 }

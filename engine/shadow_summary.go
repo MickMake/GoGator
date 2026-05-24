@@ -74,6 +74,10 @@ type ShadowConfig struct {
 	WarnOnMajorMismatch            bool
 }
 
+type legacyComparisonTrip struct {
+	Trip gps.Trip
+}
+
 func compareCandidateTrips(candidates CandidateTripEvidence, legacyValid, legacyJitter []gps.Trip, cfg ShadowConfig) CandidateTripComparison {
 	summary := buildShadowSummary(candidates, legacyValid, legacyJitter, cfg)
 	cmp := CandidateTripComparison{
@@ -108,7 +112,8 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 	s := ShadowSummary{LegacyValidTripCount: len(legacyValid), LegacyJitterTripCount: len(legacyJitter), CandidateTripCount: len(candidates.Trips), Readiness: ShadowReadinessNotEvaluated}
 	tol := cfg.MatchToleranceMinutes
 	ci := sortedCandidates(candidates.Trips)
-	li := sortedLegacy(legacyValid)
+	legacyCombined := flattenLegacyTrips(legacyValid, legacyJitter)
+	li := sortedLegacyComparison(legacyCombined)
 	usedLegacy := map[int]bool{}
 	var totalStart, totalEnd float64
 	for _, cx := range ci {
@@ -118,7 +123,7 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 			if usedLegacy[lx] {
 				continue
 			}
-			l := legacyValid[lx]
+			l := legacyCombined[lx].Trip
 			sd := math.Abs(c.StartTime.Sub(l.Start).Minutes())
 			ed := math.Abs(c.EndTime.Sub(l.End).Minutes())
 			if sd <= tol && ed <= tol {
@@ -133,7 +138,7 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 		}
 		usedLegacy[match] = true
 		s.ApproxMatchedTripCount++
-		l := legacyValid[match]
+		l := legacyCombined[match].Trip
 		sd := math.Abs(c.StartTime.Sub(l.Start).Minutes())
 		ed := math.Abs(c.EndTime.Sub(l.End).Minutes())
 		totalStart += sd
@@ -159,10 +164,10 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 			s.Mismatches = append(s.Mismatches, ShadowMismatch{ID: "boundary-delta", Type: "BoundaryDelta", Severity: boundarySeverity, LegacyStart: l.Start, LegacyEnd: l.End, CandidateStart: c.StartTime, CandidateEnd: c.EndTime, DeltaMinutes: math.Max(sd, ed), Notes: "trip boundary drift"})
 		}
 	}
-	for i := range legacyValid {
+	for i := range legacyCombined {
 		if !usedLegacy[i] {
 			s.UnmatchedLegacyTripCount++
-			l := legacyValid[i]
+			l := legacyCombined[i].Trip
 			s.Mismatches = append(s.Mismatches, ShadowMismatch{ID: "legacy-unmatched", Type: "UnmatchedLegacy", Severity: ShadowSeverityMajor, LegacyStart: l.Start, LegacyEnd: l.End, Notes: "no candidate trip matched"})
 		}
 	}
@@ -184,8 +189,9 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 		s.AverageEndDeltaMinutes = totalEnd / float64(s.ApproxMatchedTripCount)
 	}
 	matchPercent := 0.0
-	if s.LegacyValidTripCount > 0 {
-		matchPercent = (float64(s.ApproxMatchedTripCount) / float64(s.LegacyValidTripCount)) * 100
+	legacyComparisonCount := len(legacyCombined)
+	if legacyComparisonCount > 0 {
+		matchPercent = (float64(s.ApproxMatchedTripCount) / float64(legacyComparisonCount)) * 100
 	}
 	if cfg.Enabled && cfg.SummaryEnabled {
 		s.Readiness = ShadowReadinessPoorMatch
@@ -220,5 +226,25 @@ func sortedLegacy(l []gps.Trip) []int {
 		idx[i] = i
 	}
 	sort.SliceStable(idx, func(i, j int) bool { return l[idx[i]].Start.Before(l[idx[j]].Start) })
+	return idx
+}
+
+func flattenLegacyTrips(legacyValid, legacyJitter []gps.Trip) []legacyComparisonTrip {
+	combined := make([]legacyComparisonTrip, 0, len(legacyValid)+len(legacyJitter))
+	for _, trip := range legacyValid {
+		combined = append(combined, legacyComparisonTrip{Trip: trip})
+	}
+	for _, trip := range legacyJitter {
+		combined = append(combined, legacyComparisonTrip{Trip: trip})
+	}
+	return combined
+}
+
+func sortedLegacyComparison(l []legacyComparisonTrip) []int {
+	idx := make([]int, len(l))
+	for i := range l {
+		idx[i] = i
+	}
+	sort.SliceStable(idx, func(i, j int) bool { return l[idx[i]].Trip.Start.Before(l[idx[j]].Trip.Start) })
 	return idx
 }
