@@ -75,3 +75,20 @@ Append new user-visible changes to `CHANGES.md`.
 - `TRACKER_SIGNALS.md`: raw params, movement/idling signals, accelerometer axis meanings, crash/driving-style fields, and debugging value.
 - `DESIGN_NOTES.md`: why raw GPS is canonical, local enrichment model, evidence-preservation rules, CHECK philosophy, and output stability.
 - `COMMANDS.md`: CLI command intent and examples.
+
+## Protected files
+
+The following files are protected and must not be modified, renamed, moved, reformatted, or deleted by Codex or any AI agent:
+
+- `CHANGES.md`
+- `DESIGN_NOTES.md`
+- `engine/README.md`
+- `path/to/other/file`
+
+Rules:
+
+- Do not edit protected files unless the user explicitly says: `ALLOW PROTECTED FILE EDIT`.
+- If a task appears to require editing a protected file, stop and explain which protected file would be affected.
+- Do not make opportunistic documentation edits to protected files.
+- Do not reformat protected files.
+- Do not include protected files in broad cleanup/refactor commits.
