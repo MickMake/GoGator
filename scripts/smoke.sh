@@ -48,6 +48,14 @@ assert_file_not_contains() {
   fi
 }
 
+log "Run automated test passes, including synthetic engine validation coverage"
+(
+  cd "$ROOT"
+  go test ./engine -run 'ValidationPack|ValidationMetrics' -v
+  go test ./engine -run 'ValidationPack|ValidationMetrics|EngineMode|Shadow|Readiness' -v
+  go test ./...
+)
+
 log "Build CLI with vendored dependencies"
 (
   cd "$ROOT"

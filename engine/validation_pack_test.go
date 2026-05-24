@@ -50,17 +50,6 @@ func buildValidationMetricsFromResult(res Result) ValidationMetrics {
 }
 
 func TestValidationPackLegacyShadowAndEngineModes(t *testing.T) {
-	cfg := config.Default()
-	cfg.Engine.TripBuilder.Enabled = true
-	cfg.Engine.StayDetection.Enabled = true
-	cfg.Engine.Visits.Enabled = true
-	cfg.Engine.Excursions.Enabled = true
-	cfg.Engine.TripBuilder.CompareLegacy = true
-	cfg.Engine.Shadow.Enabled = true
-	cfg.Engine.Shadow.SummaryEnabled = true
-	cfg.Engine.RouteSignatures.Enabled = true
-	cfg.Engine.RouteGrouping.Enabled = true
-
 	siteList := []sites.Site{
 		{Name: "Home", Address: "1 Home St", Lat: -33.00000, Lng: 151.00000, RadiusM: 120, MinDestinationMinutes: 1, Important: true},
 		{Name: "Work", Address: "99 Work Rd", Lat: -33.01000, Lng: 151.01000, RadiusM: 120, MinDestinationMinutes: 1, Important: true},
@@ -75,39 +64,63 @@ func TestValidationPackLegacyShadowAndEngineModes(t *testing.T) {
 		mkPoint("v.csv", 6, start.Add(4*time.Minute), -33.0100, 151.0100, 0, map[string]float64{"io24": 0, "io251": 1}),
 	}
 
-	res, err := Run(context.Background(), Input{Points: clonePoints(pts), Sites: siteList, Routes: rules, Config: cfg})
+	legacyCfg := config.Default()
+	legacyRes, err := Run(context.Background(), Input{Points: clonePoints(pts), Sites: siteList, Routes: rules, Config: legacyCfg})
 	if err != nil {
-		t.Fatalf("Run error: %v", err)
+		t.Fatalf("legacy Run error: %v", err)
 	}
-	metrics := buildValidationMetricsFromResult(res)
-	if metrics.LegacyValidTripCount == 0 {
-		t.Fatalf("expected non-zero legacy valid count: %+v", metrics)
+	legacyMetrics := buildValidationMetricsFromResult(legacyRes)
+	if legacyMetrics.EngineOfficialValidTripCount == 0 {
+		t.Fatalf("expected non-zero official valid count in legacy run: %+v", legacyMetrics)
 	}
-	if metrics.ShadowReadiness == ShadowReadinessNotEvaluated {
-		t.Fatalf("expected shadow readiness computed, got %s", metrics.ShadowReadiness)
+	if legacyMetrics.ShadowReadiness != "" && legacyMetrics.ShadowReadiness != ShadowReadinessNotEvaluated {
+		t.Fatalf("expected legacy run to skip shadow readiness, got %s", legacyMetrics.ShadowReadiness)
 	}
-	if metrics.ValhallaDiagnosticCount != 0 {
-		t.Fatalf("expected no valhalla diagnostics when disabled, got %d", metrics.ValhallaDiagnosticCount)
+
+	shadowCfg := config.Default()
+	shadowCfg.Engine.TripBuilder.Enabled = true
+	shadowCfg.Engine.StayDetection.Enabled = true
+	shadowCfg.Engine.Visits.Enabled = true
+	shadowCfg.Engine.Excursions.Enabled = true
+	shadowCfg.Engine.TripBuilder.CompareLegacy = true
+	shadowCfg.Engine.Shadow.Enabled = true
+	shadowCfg.Engine.Shadow.SummaryEnabled = true
+	shadowCfg.Engine.RouteSignatures.Enabled = true
+	shadowCfg.Engine.RouteGrouping.Enabled = true
+
+	shadowRes, err := Run(context.Background(), Input{Points: clonePoints(pts), Sites: siteList, Routes: rules, Config: shadowCfg})
+	if err != nil {
+		t.Fatalf("shadow Run error: %v", err)
+	}
+	shadowMetrics := buildValidationMetricsFromResult(shadowRes)
+	if shadowMetrics.ShadowReadiness == ShadowReadinessNotEvaluated {
+		t.Fatalf("expected shadow readiness computed, got %s", shadowMetrics.ShadowReadiness)
+	}
+	if shadowMetrics.ValhallaDiagnosticCount != 0 {
+		t.Fatalf("expected no valhalla diagnostics when disabled, got %d", shadowMetrics.ValhallaDiagnosticCount)
+	}
+	if shadowMetrics.LegacyValidTripCount != legacyMetrics.EngineOfficialValidTripCount {
+		t.Fatalf("expected shadow legacy baseline count to match legacy official valid count, legacy=%d shadow=%d", legacyMetrics.EngineOfficialValidTripCount, shadowMetrics.LegacyValidTripCount)
 	}
 
 	policy := EngineModePolicy{RequireMinReadiness: true, MinReadiness: ShadowReadinessGoodMatch, AllowLowConfidence: false, AllowGapAffected: false, AllowEmptyCandidates: false, FallbackToLegacyOnReject: false, MaxUnmatchedLegacyPercent: 20, MaxBoundaryDeltaMinutes: 20, RejectNoiseAffected: true}
-	sel, err := ValidateEngineMode(res.CandidateTrips, res.TripComparison.ShadowSummary, policy)
+	sel, err := ValidateEngineMode(shadowRes.CandidateTrips, shadowRes.TripComparison.ShadowSummary, policy)
 	if err != nil {
 		t.Fatalf("ValidateEngineMode error: %v", err)
 	}
-	metrics.EngineModeAccepted = sel.Accepted
-	metrics.EngineModeReasons = append([]string(nil), sel.Reasons...)
-	if len(res.CandidateTrips.Trips) == 0 && sel.Accepted {
+	shadowMetrics.EngineModeAccepted = sel.Accepted
+	shadowMetrics.EngineModeReasons = append([]string(nil), sel.Reasons...)
+	if len(shadowRes.CandidateTrips.Trips) == 0 && sel.Accepted {
 		t.Fatalf("expected empty-candidate fixture to reject engine mode")
 	}
-	if len(res.CandidateTrips.Trips) == 0 && len(sel.Reasons) == 0 {
+	if len(shadowRes.CandidateTrips.Trips) == 0 && len(sel.Reasons) == 0 {
 		t.Fatalf("expected clear rejection reasons for empty candidate fixture")
 	}
-
-	legacy := res.Valid
-	shadow := res.Valid
-	if len(legacy) == 0 || len(shadow) == 0 {
-		t.Fatalf("unexpected mode comparison counts legacy=%d shadow=%d", len(legacy), len(shadow))
+	if shadowMetrics.ShadowReadiness == "" || shadowMetrics.ShadowReadiness == ShadowReadinessNotEvaluated {
+		t.Fatalf("expected shadow run to produce a non-empty readiness state, got %q", shadowMetrics.ShadowReadiness)
+	}
+	if legacyMetrics.ShadowReadiness == shadowMetrics.ShadowReadiness {
+		t.Fatalf("expected distinct readiness states between legacy and shadow runs: legacy=%q shadow=%q", legacyMetrics.ShadowReadiness, shadowMetrics.ShadowReadiness)
 	}
 }
 

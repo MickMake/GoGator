@@ -251,3 +251,10 @@
 - Added a focused non-production validation pack for comparing legacy/shadow/engine behaviour via deterministic engine tests and validation metrics, without changing CLI defaults or processed output schemas.
 - Added `engine/VALIDATION.md` with a safe real-data validation workflow (legacy first, shadow diagnostics, optional guarded engine mode), key metrics to inspect, and promotion guidance.
 - Kept defaults conservative and unchanged (`engine.trip_source: legacy`, Valhalla/PostGIS/diagnostics disabled by default), with no external service requirement for validation.
+
+## v0.26.20
+
+- Fixed `engine/validation_pack_test.go` so validation mode checks execute distinct legacy/default and shadow/compare-legacy runs, and assert readiness-state differences instead of comparing `res.Valid` to itself.
+- Strengthened synthetic validation assertions to verify shadow readiness is actually exercised while keeping engine-mode gating guarded and explicit.
+- Updated `engine/VALIDATION.md` to clearly separate automated synthetic validation commands from optional/manual real-data validation flow.
+- Updated `scripts/smoke.sh` to include engine validation commands in the standard local verification path, alongside existing build and CLI smoke checks.
