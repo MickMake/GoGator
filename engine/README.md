@@ -9,7 +9,7 @@
 - Core algorithms remain in `internal/gps` and `internal/routes` with no intended behaviour changes.
 - Compatibility mode is currently the only active behaviour path.
 
-## Trip source selection (v0.26.12)
+## Trip source selection (v0.26.13)
 
 - New config key: `engine.trip_source`.
 - Supported values:
@@ -114,3 +114,13 @@ When `engine.trip_builder.compare_legacy` plus `engine.shadow.enabled` and `engi
 Readiness ratings: `NotEvaluated`, `PoorMatch`, `PartialMatch`, `GoodMatch`, `ExcellentMatch`.
 
 Mismatch rows capture unmatched legacy/candidate trips, boundary drift severity, and site-label disagreement evidence where labels are available. This helps judge replacement readiness without changing official trip output.
+
+
+## Engine-mode hardening (v0.26.13)
+
+- Engine mode still requires explicit `engine.trip_source: engine`; default remains `legacy` and shadow remains diagnostic-only.
+- Candidate adapter preserves candidate start/end timestamps and uses source-point rows/coordinates when indexes are valid; unknown origin/destination labels remain blank instead of invented values.
+- Deterministic confidence handling: low confidence, gap-affected, and noise-affected candidates are conservatively treated as jitter in adapted output; short-duration warnings are also jittered.
+- Engine readiness validation remains strict by default and now rejects noise-affected shadow summaries; fallback to legacy occurs only when `engine.engine_mode.fallback_to_legacy_on_reject: true`.
+- Selection diagnostics (`*_engine_selection.csv`) now include requested/selected source, fallback, readiness, candidate count, official valid/jitter counts, rejection count, and reasons to support safe staged rollout.
+- Recommended safety workflow: run `shadow` first with diagnostics enabled, inspect mismatches/reasons, then test `engine` mode with fallback disabled before any real-data adoption.

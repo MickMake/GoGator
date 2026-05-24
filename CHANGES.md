@@ -1,5 +1,11 @@
 # Changes
 
+## v0.26.13
+
+- Hardened `engine.trip_source: engine` candidate adaptation with conservative confidence handling, traceability flags, and robust unknown-endpoint safety while preserving stable processed CSV headers.
+- Added deterministic rejection/selection hardening for noise-affected candidates and expanded engine selection diagnostics with candidate/official/rejected counts.
+- Added edge-case tests for candidate adaptation, jitter classification, and fallback selection diagnostics; legacy/shadow defaults remain unchanged.
+
 ## v0.26.12
 
 - Added engine-mode readiness validation and conservative safety policy controls under `engine.engine_mode` for experimental `engine.trip_source: engine` output selection.

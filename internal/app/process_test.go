@@ -102,3 +102,38 @@ func TestEngineRejectWithoutFallback(t *testing.T) {
 		t.Fatalf("expected rejection error, got %v", err)
 	}
 }
+
+func TestAdaptCandidateTripsUnknownEndpointsNoPanic(t *testing.T) {
+	base := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
+	valid, jitter := adaptCandidateTrips([]engine.CandidateTrip{{StartTime: base, EndTime: base.Add(5 * time.Minute), SourcePointStart: -1, SourcePointEnd: 999, Confidence: engine.CandidateConfidenceHigh}}, nil)
+	if len(valid) != 1 || len(jitter) != 0 {
+		t.Fatalf("expected valid conversion, got valid=%d jitter=%d", len(valid), len(jitter))
+	}
+}
+
+func TestAdaptCandidateTripsLowGapNoiseBecomeJitter(t *testing.T) {
+	base := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
+	cases := []engine.CandidateTrip{{StartTime: base, EndTime: base.Add(5 * time.Minute), Confidence: engine.CandidateConfidenceLow}, {StartTime: base, EndTime: base.Add(5 * time.Minute), Confidence: engine.CandidateConfidenceMedium, Type: engine.CandidateTripGapAffected}, {StartTime: base, EndTime: base.Add(5 * time.Minute), Confidence: engine.CandidateConfidenceHigh, Type: engine.CandidateTripNoiseAffected}}
+	valid, jitter := adaptCandidateTrips(cases, nil)
+	if len(valid) != 0 || len(jitter) != 3 {
+		t.Fatalf("expected all jitter, got valid=%d jitter=%d", len(valid), len(jitter))
+	}
+}
+
+func TestEngineFallbackSelectionDiagnostics(t *testing.T) {
+	orig := runEngine
+	t.Cleanup(func() { runEngine = orig })
+	runEngine = func(_ context.Context, _ engine.Input) (engine.Result, error) {
+		return engine.Result{CandidateTrips: engine.CandidateTripEvidence{Trips: []engine.CandidateTrip{}}, TripComparison: engine.CandidateTripComparison{ShadowSummary: engine.ShadowSummary{Readiness: engine.ShadowReadinessPoorMatch}}, Valid: []gps.Trip{{DepartureSite: "legacy"}}}, nil
+	}
+	cfg := config.Default()
+	cfg.Engine.TripSource = "engine"
+	cfg.Engine.EngineMode.FallbackToLegacyOnReject = true
+	res, err := runProcessPipeline(nil, nil, nil, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.EngineDiagnostics.EngineSelection.FallbackUsed {
+		t.Fatalf("expected fallback used")
+	}
+}
