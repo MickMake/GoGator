@@ -245,3 +245,9 @@
 - Verified and preserved conservative defaults across optional systems (`engine.trip_source: legacy`, diagnostics off by default, Valhalla off by default, PostGIS off by default).
 - Refreshed `engine/README.md` to clearly separate implemented behaviour, diagnostic-only paths, and experimental/opt-in paths, and documented a recommended safe legacy→diagnostics→shadow→engine workflow.
 - Kept official processed/jitter CSV schemas, CLI behaviour, and default output selection unchanged.
+
+## v0.26.19
+
+- Added a focused non-production validation pack for comparing legacy/shadow/engine behaviour via deterministic engine tests and validation metrics, without changing CLI defaults or processed output schemas.
+- Added `engine/VALIDATION.md` with a safe real-data validation workflow (legacy first, shadow diagnostics, optional guarded engine mode), key metrics to inspect, and promotion guidance.
+- Kept defaults conservative and unchanged (`engine.trip_source: legacy`, Valhalla/PostGIS/diagnostics disabled by default), with no external service requirement for validation.

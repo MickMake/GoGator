@@ -2,7 +2,7 @@
 
 `engine` is GoGator's explicit orchestration seam for in-memory GPS processing.
 
-## Current status (v0.26.18)
+## Current status (v0.26.19)
 
 Implemented now:
 - `engine.Run(ctx, input)` is the compatibility orchestration seam wrapping the existing legacy processing sequence.
