@@ -129,7 +129,7 @@ func writeMotion(path string, rows []engine.MotionSample) error {
 		return err
 	}
 	for _, r := range rows {
-		if err := w.Write([]string{itoa(r.Index), fmtTime(r.Time), string(r.State), "", string(r.Reason), string(r.Quality)}); err != nil {
+		if err := w.Write([]string{itoa(r.Index), fmtTime(r.Time), string(r.State), ftoa(r.SpeedKPH, 2), string(r.Reason), string(r.Quality)}); err != nil {
 			return err
 		}
 	}
