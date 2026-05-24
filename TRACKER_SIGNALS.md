@@ -1,3 +1,15 @@
+<!--
+PROTECTED FILE - DO NOT EDIT
+
+This file is intentionally protected.
+Do not modify, rewrite, reformat, rename, move, or delete this file.
+
+Codex/AI agents:
+- You must not change this file.
+- If a task appears to require changing this file, stop and report that it is protected.
+- Do not "clean up", "modernise", "simplify", or "deduplicate" this file.
+-->
+
 # Tracker Signals and Params Reference
 
 This file captures raw tracker signal context that should not be lost during future Codex or manual maintenance work.
