@@ -1,5 +1,7 @@
 package engine
 
+import "gogator/engine/mapmatch"
+
 type Diagnostics struct {
 	Points          []PointEvidence
 	Motion          []MotionSample
@@ -24,8 +26,8 @@ func (r Result) Diagnostics() Diagnostics {
 		Excursions:      cloneExcursions(r.Excursions.Excursions),
 		CandidateTrips:  cloneCandidateTrips(r.CandidateTrips.Trips),
 		MapMatch:        cloneMapMatchDiagnostics(r.MapMatchDiagnostics),
-		RouteSignatures: append([]RouteSignature(nil), r.RouteSignatures...),
-		RouteGroups:     append([]RouteGroup(nil), r.RouteGroups...),
+		RouteSignatures: cloneRouteSignatures(r.RouteSignatures),
+		RouteGroups:     cloneRouteGroups(r.RouteGroups),
 		TripComparison:  cloneTripComparison(r.TripComparison),
 		ShadowSummary:   cloneShadowSummary(r.TripComparison.ShadowSummary),
 		EngineSelection: EngineModeSelection{},
@@ -36,6 +38,25 @@ func cloneMapMatchDiagnostics(in []CandidateTripMapMatchDiagnostic) []CandidateT
 	out := append([]CandidateTripMapMatchDiagnostic(nil), in...)
 	for i := range out {
 		out[i].WarningCodes = append([]string(nil), out[i].WarningCodes...)
+		out[i].MatchedShape = append([]mapmatch.MatchedShapePoint(nil), out[i].MatchedShape...)
+	}
+	return out
+}
+
+func cloneRouteSignatures(in []RouteSignature) []RouteSignature {
+	out := append([]RouteSignature(nil), in...)
+	for i := range out {
+		out[i].Cells = append([]RouteSignatureCell(nil), out[i].Cells...)
+		out[i].Warnings = append([]RouteSignatureWarning(nil), out[i].Warnings...)
+	}
+	return out
+}
+
+func cloneRouteGroups(in []RouteGroup) []RouteGroup {
+	out := append([]RouteGroup(nil), in...)
+	for i := range out {
+		out[i].TripIDs = append([]int(nil), out[i].TripIDs...)
+		out[i].Matches = append([]RouteGroupMatch(nil), out[i].Matches...)
 	}
 	return out
 }
