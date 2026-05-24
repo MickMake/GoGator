@@ -83,8 +83,8 @@ The following files are protected and must not be modified, renamed, moved, refo
 - `CHANGES.md`
 - `DESIGN_NOTES.md`
 - `engine/README.md`
-- `CHANGES.md`
-- `DESIGN_NOTES.md`
+- `COMMANDS.md`
+- `TRACKER_SIGNALS.md`
 
 Rules:
 
