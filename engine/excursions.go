@@ -92,7 +92,7 @@ func detectExcursions(visits VisitEvidence, cfg ExcursionConfig) ExcursionEviden
 		}
 		if i >= 1 {
 			prev := visits.Visits[i-1]
-			if prev.MatchedSite != "" && prev.MatchedSite == to.MatchedSite && from.MatchedSite == "" && to.StartTime.Sub(prev.EndTime) <= time.Duration(cfg.ShortOutAndBackMaxMinutes*float64(time.Minute)) {
+			if isFallbackShortOutAndBack(prev, from, to, cfg) {
 				t = ExcursionShortOutAndBack
 				reasons = append(reasons, ExcursionReasonShortReturn)
 				conf = ExcursionConfidenceHigh
@@ -104,6 +104,18 @@ func detectExcursions(visits VisitEvidence, cfg ExcursionConfig) ExcursionEviden
 		out.Excursions = append(out.Excursions, Excursion{FromVisitIndex: i, ToVisitIndex: i + 1, StartTime: from.EndTime, EndTime: to.StartTime, Duration: to.StartTime.Sub(from.EndTime), DistanceM: d, PointIndexes: append(append([]int(nil), from.PointIndexes...), to.PointIndexes...), Type: t, Reasons: reasons, Confidence: conf})
 	}
 	return out
+}
+
+func isFallbackShortOutAndBack(prev, from, to Visit, cfg ExcursionConfig) bool {
+	if prev.MatchedSite == "" || prev.MatchedSite != to.MatchedSite || from.MatchedSite != "" {
+		return false
+	}
+	if to.StartTime.Sub(prev.EndTime) > time.Duration(cfg.ShortOutAndBackMaxMinutes*float64(time.Minute)) {
+		return false
+	}
+	outbound := gps.HaversineM(prev.Latitude, prev.Longitude, from.Latitude, from.Longitude)
+	returnDistance := gps.HaversineM(from.Latitude, from.Longitude, to.Latitude, to.Longitude)
+	return outbound <= cfg.ShortOutAndBackMaxDistance && returnDistance <= cfg.ShortOutAndBackMaxDistance
 }
 func hasVisitReason(v Visit, reason VisitReason) bool {
 	for _, r := range v.Reasons {

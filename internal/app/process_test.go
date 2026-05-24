@@ -80,12 +80,20 @@ func TestLegacyAndShadowBypassEngineSelectionValidation(t *testing.T) {
 	}
 	cfg := config.Default()
 	cfg.Engine.TripSource = "legacy"
-	if _, err := runProcessPipeline(nil, nil, nil, cfg); err != nil {
+	legacyRes, err := runProcessPipeline(nil, nil, nil, cfg)
+	if err != nil {
 		t.Fatal(err)
 	}
+	if legacyRes.EngineDiagnostics.EngineSelection.RequestedTripSource != "legacy" || legacyRes.EngineDiagnostics.EngineSelection.SelectedTripSource != "legacy" {
+		t.Fatalf("expected legacy selection/requested, got %+v", legacyRes.EngineDiagnostics.EngineSelection)
+	}
 	cfg.Engine.TripSource = "shadow"
-	if _, err := runProcessPipeline(nil, nil, nil, cfg); err != nil {
+	shadowRes, err := runProcessPipeline(nil, nil, nil, cfg)
+	if err != nil {
 		t.Fatal(err)
+	}
+	if shadowRes.EngineDiagnostics.EngineSelection.RequestedTripSource != "shadow" || shadowRes.EngineDiagnostics.EngineSelection.SelectedTripSource != "legacy" {
+		t.Fatalf("expected shadow requested with legacy selected, got %+v", shadowRes.EngineDiagnostics.EngineSelection)
 	}
 }
 
@@ -100,5 +108,23 @@ func TestEngineRejectWithoutFallback(t *testing.T) {
 	_, err := runProcessPipeline(nil, nil, nil, cfg)
 	if err == nil || !strings.Contains(err.Error(), "engine trip output rejected") {
 		t.Fatalf("expected rejection error, got %v", err)
+	}
+}
+
+func TestEngineTripSourceFallbackSelectsLegacy(t *testing.T) {
+	orig := runEngine
+	t.Cleanup(func() { runEngine = orig })
+	runEngine = func(_ context.Context, _ engine.Input) (engine.Result, error) {
+		return engine.Result{TripComparison: engine.CandidateTripComparison{ShadowSummary: engine.ShadowSummary{Readiness: engine.ShadowReadinessPoorMatch}}}, nil
+	}
+	cfg := config.Default()
+	cfg.Engine.TripSource = "engine"
+	cfg.Engine.EngineMode.FallbackToLegacyOnReject = true
+	res, err := runProcessPipeline(nil, nil, nil, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.EngineDiagnostics.EngineSelection.SelectedTripSource != "legacy" || !res.EngineDiagnostics.EngineSelection.FallbackUsed {
+		t.Fatalf("expected legacy fallback selection, got %+v", res.EngineDiagnostics.EngineSelection)
 	}
 }

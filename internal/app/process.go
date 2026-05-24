@@ -325,7 +325,7 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 	valid, jitter := result.Valid, result.Jitter
 	jitterReview, jitterSameSite := result.JitterReview, result.JitterSameSite
 	observations, anomalies := result.RouteObservations, result.RouteAnomalies
-	selection := engine.EngineModeSelection{RequestedTripSource: tripSource, SelectedTripSource: tripSource, Accepted: true, Readiness: result.TripComparison.ShadowSummary.Readiness}
+	selection := engine.EngineModeSelection{RequestedTripSource: tripSource, SelectedTripSource: "legacy", Accepted: true, Readiness: result.TripComparison.ShadowSummary.Readiness}
 	if tripSource == "engine" {
 		pol := engine.EngineModePolicy{RequireMinReadiness: cfg.Engine.EngineMode.RequireMinReadiness, MinReadiness: engine.ShadowReadiness(cfg.Engine.EngineMode.MinReadiness), AllowLowConfidence: cfg.Engine.EngineMode.AllowLowConfidence, AllowGapAffected: cfg.Engine.EngineMode.AllowGapAffected, AllowEmptyCandidates: cfg.Engine.EngineMode.AllowEmptyCandidates, FallbackToLegacyOnReject: cfg.Engine.EngineMode.FallbackToLegacyOnReject, MaxUnmatchedLegacyPercent: cfg.Engine.EngineMode.MaxUnmatchedLegacyPercent, MaxBoundaryDeltaMinutes: cfg.Engine.EngineMode.MaxBoundaryDeltaMinutes}
 		selection, err = engine.ValidateEngineMode(result.CandidateTrips, result.TripComparison.ShadowSummary, pol)
