@@ -12,6 +12,14 @@ Raw GPS CSV is canonical.
 
 Gator's processed "drives and stops" exports are not canonical because they have shown suspicious timestamp and trip-detection behaviour. They may be used as rough reference material, but GoGator should not rely on them for truth.
 
+## Engine ownership principle
+
+Trip construction belongs in `engine`.
+
+The old `internal/gps` trip construction path is not the authority and must not be treated as the test oracle. Existing CLI commands and output files should remain available, but the trip-construction internals must move to the engine path.
+
+A useful test asks whether the engine output is explainable, auditable, and consistent for the configured input data. It does not ask whether the engine reproduced whatever one old binary happened to emit.
+
 ## Local enrichment model
 
 GoGator enriches raw tracker observations using local reference files:
@@ -67,6 +75,4 @@ A matching route may increase confidence, annotate a trip, or flag an anomaly. I
 
 Processed CSV columns are high-stability. Avoid adding columns unless explicitly requested. The expanded/audit outputs are better places to preserve richer diagnostic detail.
 
-## v1.1 migration status
-
-v1.1 is a guardrail/baseline release for the staged `engine/` migration. It documents current seams and diagnostics, and does **not** intentionally change GPS trip-detection behaviour.
+Output stability means current command names and output files should not vanish just because the engine replaces the trip-construction internals. It does not mean old GPS trip construction remains authoritative.
