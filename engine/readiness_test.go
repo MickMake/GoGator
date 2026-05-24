@@ -51,3 +51,45 @@ func TestValidateEngineModeRejectsWhenValidLegacyUnmatchedPercentExceeded(t *tes
 		t.Fatalf("expected rejection")
 	}
 }
+
+func TestValidateEngineModeRejectsWithoutSilentFallbackByDefault(t *testing.T) {
+	pol := EngineModePolicy{
+		MinReadiness:             ShadowReadinessNotEvaluated,
+		AllowEmptyCandidates:     false,
+		FallbackToLegacyOnReject: false,
+	}
+	sel, err := ValidateEngineMode(CandidateTripEvidence{}, ShadowSummary{Readiness: ShadowReadinessNotEvaluated}, pol)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sel.Accepted {
+		t.Fatalf("expected rejection")
+	}
+	if sel.FallbackUsed {
+		t.Fatalf("expected no fallback when fallback_to_legacy_on_reject=false")
+	}
+	if sel.SelectedTripSource != "engine" {
+		t.Fatalf("expected selected_trip_source to remain engine on explicit reject, got %q", sel.SelectedTripSource)
+	}
+}
+
+func TestValidateEngineModeUsesExplicitFallbackWhenEnabled(t *testing.T) {
+	pol := EngineModePolicy{
+		MinReadiness:             ShadowReadinessNotEvaluated,
+		AllowEmptyCandidates:     false,
+		FallbackToLegacyOnReject: true,
+	}
+	sel, err := ValidateEngineMode(CandidateTripEvidence{}, ShadowSummary{Readiness: ShadowReadinessNotEvaluated}, pol)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sel.Accepted {
+		t.Fatalf("expected rejection")
+	}
+	if !sel.FallbackUsed {
+		t.Fatalf("expected fallback when fallback_to_legacy_on_reject=true")
+	}
+	if sel.SelectedTripSource != "legacy" {
+		t.Fatalf("expected selected_trip_source=legacy, got %q", sel.SelectedTripSource)
+	}
+}

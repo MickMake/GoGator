@@ -237,3 +237,11 @@
 - Preserved destination dwell validation, stationary teleport guard, same-site micro-trip suppression, route observations, and route anomalies.
 
 - Implemented SQLite-backed site commands: import sites, export sites, add site, delete site.
+
+## v0.26.18
+
+- Performed a focused engine stabilisation/cleanup pass without expanding production behaviour or changing default legacy processing/output paths.
+- Added focused readiness regression coverage for explicit/non-silent fallback behaviour in engine mode (`fallback_to_legacy_on_reject`), including both reject-without-fallback and reject-with-explicit-fallback cases.
+- Verified and preserved conservative defaults across optional systems (`engine.trip_source: legacy`, diagnostics off by default, Valhalla off by default, PostGIS off by default).
+- Refreshed `engine/README.md` to clearly separate implemented behaviour, diagnostic-only paths, and experimental/opt-in paths, and documented a recommended safe legacy→diagnostics→shadow→engine workflow.
+- Kept official processed/jitter CSV schemas, CLI behaviour, and default output selection unchanged.
