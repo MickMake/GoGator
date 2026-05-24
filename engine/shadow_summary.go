@@ -52,6 +52,7 @@ type ShadowSummary struct {
 	CandidateTripCount             int
 	ApproxMatchedTripCount         int
 	UnmatchedLegacyTripCount       int
+	UnmatchedLegacyValidTripCount  int
 	UnmatchedCandidateTripCount    int
 	AverageStartDeltaMinutes       float64
 	AverageEndDeltaMinutes         float64
@@ -167,6 +168,9 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 	for i := range legacyCombined {
 		if !usedLegacy[i] {
 			s.UnmatchedLegacyTripCount++
+			if i < len(legacyValid) {
+				s.UnmatchedLegacyValidTripCount++
+			}
 			l := legacyCombined[i].Trip
 			s.Mismatches = append(s.Mismatches, ShadowMismatch{ID: "legacy-unmatched", Type: "UnmatchedLegacy", Severity: ShadowSeverityMajor, LegacyStart: l.Start, LegacyEnd: l.End, Notes: "no candidate trip matched"})
 		}
@@ -210,7 +214,7 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 }
 
 func buildShadowMetrics(s ShadowSummary, cfg ShadowConfig) []ShadowMetric {
-	return []ShadowMetric{{"legacy_valid_trip_count", fmt.Sprintf("%d", s.LegacyValidTripCount), ShadowSeverityInfo, ""}, {"legacy_jitter_trip_count", fmt.Sprintf("%d", s.LegacyJitterTripCount), ShadowSeverityInfo, ""}, {"candidate_trip_count", fmt.Sprintf("%d", s.CandidateTripCount), ShadowSeverityInfo, ""}, {"approx_matched_trip_count", fmt.Sprintf("%d", s.ApproxMatchedTripCount), ShadowSeverityInfo, ""}, {"unmatched_legacy_trip_count", fmt.Sprintf("%d", s.UnmatchedLegacyTripCount), ShadowSeverityWarning, ""}, {"unmatched_candidate_trip_count", fmt.Sprintf("%d", s.UnmatchedCandidateTripCount), ShadowSeverityWarning, ""}, {"average_start_delta_minutes", fmt.Sprintf("%.2f", s.AverageStartDeltaMinutes), ShadowSeverityInfo, ""}, {"average_end_delta_minutes", fmt.Sprintf("%.2f", s.AverageEndDeltaMinutes), ShadowSeverityInfo, ""}, {"largest_boundary_delta_minutes", fmt.Sprintf("%.2f", s.LargestBoundaryDeltaMinutes), ShadowSeverityInfo, ""}, {"origin_destination_mismatch_count", fmt.Sprintf("%d", s.OriginDestinationMismatchCount), ShadowSeverityWarning, ""}, {"low_confidence_candidate_count", fmt.Sprintf("%d", s.LowConfidenceCandidateCount), ShadowSeverityWarning, ""}, {"gap_affected_candidate_count", fmt.Sprintf("%d", s.GapAffectedCandidateCount), ShadowSeverityWarning, ""}, {"noise_affected_candidate_count", fmt.Sprintf("%d", s.NoiseAffectedCandidateCount), ShadowSeverityWarning, ""}, {"readiness", string(s.Readiness), ShadowSeverityInfo, ""}}
+	return []ShadowMetric{{"legacy_valid_trip_count", fmt.Sprintf("%d", s.LegacyValidTripCount), ShadowSeverityInfo, ""}, {"legacy_jitter_trip_count", fmt.Sprintf("%d", s.LegacyJitterTripCount), ShadowSeverityInfo, ""}, {"candidate_trip_count", fmt.Sprintf("%d", s.CandidateTripCount), ShadowSeverityInfo, ""}, {"approx_matched_trip_count", fmt.Sprintf("%d", s.ApproxMatchedTripCount), ShadowSeverityInfo, ""}, {"unmatched_legacy_trip_count", fmt.Sprintf("%d", s.UnmatchedLegacyTripCount), ShadowSeverityWarning, ""}, {"unmatched_legacy_valid_trip_count", fmt.Sprintf("%d", s.UnmatchedLegacyValidTripCount), ShadowSeverityWarning, ""}, {"unmatched_candidate_trip_count", fmt.Sprintf("%d", s.UnmatchedCandidateTripCount), ShadowSeverityWarning, ""}, {"average_start_delta_minutes", fmt.Sprintf("%.2f", s.AverageStartDeltaMinutes), ShadowSeverityInfo, ""}, {"average_end_delta_minutes", fmt.Sprintf("%.2f", s.AverageEndDeltaMinutes), ShadowSeverityInfo, ""}, {"largest_boundary_delta_minutes", fmt.Sprintf("%.2f", s.LargestBoundaryDeltaMinutes), ShadowSeverityInfo, ""}, {"origin_destination_mismatch_count", fmt.Sprintf("%d", s.OriginDestinationMismatchCount), ShadowSeverityWarning, ""}, {"low_confidence_candidate_count", fmt.Sprintf("%d", s.LowConfidenceCandidateCount), ShadowSeverityWarning, ""}, {"gap_affected_candidate_count", fmt.Sprintf("%d", s.GapAffectedCandidateCount), ShadowSeverityWarning, ""}, {"noise_affected_candidate_count", fmt.Sprintf("%d", s.NoiseAffectedCandidateCount), ShadowSeverityWarning, ""}, {"readiness", string(s.Readiness), ShadowSeverityInfo, ""}}
 }
 func sortedCandidates(c []CandidateTrip) []int {
 	idx := make([]int, len(c))

@@ -44,7 +44,7 @@ func ValidateEngineMode(candidates CandidateTripEvidence, summary ShadowSummary,
 		sel.Reasons = append(sel.Reasons, fmt.Sprintf("readiness %s below required %s", summary.Readiness, policy.MinReadiness))
 	}
 	if summary.LegacyValidTripCount > 0 && policy.MaxUnmatchedLegacyPercent >= 0 {
-		pct := float64(summary.UnmatchedLegacyTripCount) * 100.0 / float64(summary.LegacyValidTripCount)
+		pct := float64(summary.UnmatchedLegacyValidTripCount) * 100.0 / float64(summary.LegacyValidTripCount)
 		if pct > policy.MaxUnmatchedLegacyPercent {
 			sel.Reasons = append(sel.Reasons, fmt.Sprintf("unmatched legacy trips %.2f%% exceeds %.2f%%", pct, policy.MaxUnmatchedLegacyPercent))
 		}

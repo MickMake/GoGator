@@ -51,7 +51,10 @@ func (v *ValhallaMapMatcher) Match(req MatchRequest) (MatchResult, error) {
 		endpoint = v.endpoint
 	}
 	payload := map[string]any{"costing": "auto", "shape_match": "map_snap", "shape": buildShape(req.Points)}
-	buf, _ := json.Marshal(payload)
+	buf, err := json.Marshal(payload)
+	if err != nil {
+		return MatchResult{}, fmt.Errorf("marshal valhalla request: %w", err)
+	}
 	httpReq, err := http.NewRequest(http.MethodPost, v.baseURL+"/"+strings.TrimLeft(endpoint, "/"), bytes.NewReader(buf))
 	if err != nil {
 		return MatchResult{}, fmt.Errorf("create valhalla request: %w", err)

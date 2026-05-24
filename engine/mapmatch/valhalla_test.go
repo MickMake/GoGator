@@ -2,6 +2,7 @@ package mapmatch
 
 import (
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -71,5 +72,21 @@ func TestValhallaEmptyInputSafe(t *testing.T) {
 	res, err := m.Match(MatchRequest{})
 	if err != nil || res.DistanceM != 0 {
 		t.Fatalf("res=%+v err=%v", res, err)
+	}
+}
+
+func TestValhallaMarshalErrorReturnedBeforeHTTP(t *testing.T) {
+	hit := false
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hit = true
+	}))
+	defer ts.Close()
+	m := NewValhallaMapMatcher(ValhallaConfig{BaseURL: ts.URL})
+	_, err := m.Match(MatchRequest{Points: []MatchPoint{{Lat: math.NaN(), Lng: 1}}})
+	if err == nil || !strings.Contains(err.Error(), "marshal valhalla request") {
+		t.Fatalf("err=%v", err)
+	}
+	if hit {
+		t.Fatalf("expected no HTTP request on marshal failure")
 	}
 }
