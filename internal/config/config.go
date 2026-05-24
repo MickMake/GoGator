@@ -24,6 +24,7 @@ type Engine struct {
 	Enabled           bool
 	CompatibilityMode bool
 	TripSource        string
+	EngineMode        EngineMode
 	StayDetection     EngineStayDetection
 	Visits            EngineVisits
 	Excursions        EngineExcursions
@@ -75,6 +76,16 @@ type EngineMotion struct {
 	MinConsecutiveSamples       int
 }
 type EngineQuality struct{ Enabled bool }
+type EngineMode struct {
+	RequireMinReadiness       bool
+	MinReadiness              string
+	AllowLowConfidence        bool
+	AllowGapAffected          bool
+	AllowEmptyCandidates      bool
+	FallbackToLegacyOnReject  bool
+	MaxUnmatchedLegacyPercent float64
+	MaxBoundaryDeltaMinutes   float64
+}
 type EngineAudit struct {
 	Enabled                bool
 	OutputDiagnostics      bool
@@ -178,6 +189,7 @@ func Default() Config {
 			Enabled:           true,
 			CompatibilityMode: true,
 			TripSource:        "legacy",
+			EngineMode:        EngineMode{RequireMinReadiness: true, MinReadiness: "GoodMatch", AllowLowConfidence: false, AllowGapAffected: false, AllowEmptyCandidates: false, FallbackToLegacyOnReject: false, MaxUnmatchedLegacyPercent: 20, MaxBoundaryDeltaMinutes: 20},
 			StayDetection: EngineStayDetection{
 				Enabled:                false,
 				MinDurationMinutes:     5,
@@ -411,6 +423,26 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.TripBuilder.MaxGapMinutes = f(val, cfg.Engine.TripBuilder.MaxGapMinutes)
 		case "low_confidence_threshold":
 			cfg.Engine.TripBuilder.LowConfidenceThreshold = f(val, cfg.Engine.TripBuilder.LowConfidenceThreshold)
+		}
+
+	case "engine.engine_mode":
+		switch key {
+		case "require_min_readiness":
+			cfg.Engine.EngineMode.RequireMinReadiness = b(val, cfg.Engine.EngineMode.RequireMinReadiness)
+		case "min_readiness":
+			cfg.Engine.EngineMode.MinReadiness = strings.TrimSpace(val)
+		case "allow_low_confidence":
+			cfg.Engine.EngineMode.AllowLowConfidence = b(val, cfg.Engine.EngineMode.AllowLowConfidence)
+		case "allow_gap_affected":
+			cfg.Engine.EngineMode.AllowGapAffected = b(val, cfg.Engine.EngineMode.AllowGapAffected)
+		case "allow_empty_candidates":
+			cfg.Engine.EngineMode.AllowEmptyCandidates = b(val, cfg.Engine.EngineMode.AllowEmptyCandidates)
+		case "fallback_to_legacy_on_reject":
+			cfg.Engine.EngineMode.FallbackToLegacyOnReject = b(val, cfg.Engine.EngineMode.FallbackToLegacyOnReject)
+		case "max_unmatched_legacy_percent":
+			cfg.Engine.EngineMode.MaxUnmatchedLegacyPercent = f(val, cfg.Engine.EngineMode.MaxUnmatchedLegacyPercent)
+		case "max_boundary_delta_minutes":
+			cfg.Engine.EngineMode.MaxBoundaryDeltaMinutes = f(val, cfg.Engine.EngineMode.MaxBoundaryDeltaMinutes)
 		}
 
 	case "engine.shadow":

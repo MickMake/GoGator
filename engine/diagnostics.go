@@ -1,26 +1,28 @@
 package engine
 
 type Diagnostics struct {
-	Points         []PointEvidence
-	Motion         []MotionSample
-	Stays          []Stay
-	Visits         []Visit
-	Excursions     []Excursion
-	CandidateTrips []CandidateTrip
-	TripComparison CandidateTripComparison
-	ShadowSummary  ShadowSummary
+	Points          []PointEvidence
+	Motion          []MotionSample
+	Stays           []Stay
+	Visits          []Visit
+	Excursions      []Excursion
+	CandidateTrips  []CandidateTrip
+	TripComparison  CandidateTripComparison
+	ShadowSummary   ShadowSummary
+	EngineSelection EngineModeSelection
 }
 
 func (r Result) Diagnostics() Diagnostics {
 	return Diagnostics{
-		Points:         clonePointEvidence(r.Evidence.Points),
-		Motion:         append([]MotionSample(nil), r.Motion.Samples...),
-		Stays:          cloneStays(r.Stays.Stays),
-		Visits:         cloneVisits(r.Visits.Visits),
-		Excursions:     cloneExcursions(r.Excursions.Excursions),
-		CandidateTrips: cloneCandidateTrips(r.CandidateTrips.Trips),
-		TripComparison: cloneTripComparison(r.TripComparison),
-		ShadowSummary:  cloneShadowSummary(r.TripComparison.ShadowSummary),
+		Points:          clonePointEvidence(r.Evidence.Points),
+		Motion:          append([]MotionSample(nil), r.Motion.Samples...),
+		Stays:           cloneStays(r.Stays.Stays),
+		Visits:          cloneVisits(r.Visits.Visits),
+		Excursions:      cloneExcursions(r.Excursions.Excursions),
+		CandidateTrips:  cloneCandidateTrips(r.CandidateTrips.Trips),
+		TripComparison:  cloneTripComparison(r.TripComparison),
+		ShadowSummary:   cloneShadowSummary(r.TripComparison.ShadowSummary),
+		EngineSelection: EngineModeSelection{},
 	}
 }
 

@@ -1,5 +1,13 @@
 # Changes
 
+## v0.26.12
+
+- Added engine-mode readiness validation and conservative safety policy controls under `engine.engine_mode` for experimental `engine.trip_source: engine` output selection.
+- Engine mode now rejects unsafe candidate output by default with clear reasons (readiness, empty candidates, unmatched legacy rate, boundary drift, low-confidence/gap-affected candidates).
+- Added explicit optional fallback control `engine.engine_mode.fallback_to_legacy_on_reject`; no silent fallback occurs unless enabled.
+- Added engine selection diagnostics support (`*_engine_selection.csv`) including requested/selected source, accepted/rejected, fallback usage, readiness, and reasons.
+- Default behaviour remains unchanged (`engine.trip_source: legacy`).
+
 ## v0.26.11
 
 - Added explicit `engine.trip_source` selection with supported values `legacy`, `shadow`, and `engine`, defaulting to `legacy`.
