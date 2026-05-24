@@ -1,6 +1,8 @@
 # Engine Validation Pack (v0.26.19)
 
-This validation pack is for **real-data comparison** between `legacy`, `shadow`, and optional `engine` mode without changing production behaviour.
+This validation pack is an **automated synthetic/local fixture** harness for comparing `legacy` and `shadow` behaviour, plus guarded `engine` readiness checks, without changing production behaviour.
+
+Optional manual commands are included below for **real-data validation** when you have representative GPS CSVs available locally.
 
 ## Safety and defaults
 
@@ -9,7 +11,20 @@ This validation pack is for **real-data comparison** between `legacy`, `shadow`,
 - No external service is required for validation tests.
 - Engine mode remains opt-in/experimental.
 
-## Recommended run flow
+## Automated local validation (synthetic fixtures)
+
+Run these as part of normal local verification:
+
+```bash
+go test ./engine -run 'ValidationPack|ValidationMetrics' -v
+go test ./engine -run 'ValidationPack|ValidationMetrics|EngineMode|Shadow|Readiness' -v
+```
+
+These tests use deterministic local fixtures only (no real-user CSV fixtures and no Valhalla/PostGIS/H3 runtime requirements).
+
+## Optional manual real-data validation flow
+
+If you have a representative raw GPS CSV locally, run this manual flow before enabling engine mode.
 
 1. Run default legacy processing:
 
@@ -17,7 +32,7 @@ This validation pack is for **real-data comparison** between `legacy`, `shadow`,
 gogator process <raw-gps.csv>
 ```
 
-2. Run shadow comparison (official output still legacy):
+2. Run shadow comparison with diagnostics enabled (official output remains legacy unless you explicitly switch trip source):
 
 ```yaml
 engine:
@@ -33,18 +48,19 @@ engine:
     output_diagnostics: true
 ```
 
-3. Inspect validation metrics in diagnostics/tests:
+3. Inspect shadow/diagnostic outputs:
+   - shadow summary readiness + reasons
    - legacy valid trip count
    - legacy jitter trip count
    - candidate trip count
-   - shadow readiness
    - unmatched legacy valid count
    - unmatched candidate count
    - largest boundary delta
    - low-confidence and gap/noise affected counts
    - route signature/grouping counts (if enabled)
+   - mismatch/selection diagnostics from audit output
 
-4. Test engine mode safely only when shadow readiness is acceptable:
+4. Only then test guarded engine mode:
 
 ```yaml
 engine:
@@ -66,13 +82,3 @@ A practical threshold is:
 - minimal low-confidence/gap/noise candidate warnings.
 
 Treat routes and map-match diagnostics as advisory only.
-
-## Test harness
-
-Use:
-
-```bash
-go test ./engine -run ValidationPack
-```
-
-The harness validates deterministic comparison metrics and ensures validation works with local fixtures/synthetic points only (no Valhalla/PostGIS/H3 services required).
