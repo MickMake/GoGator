@@ -2,9 +2,70 @@
 
 ## Current commands
 
+## Import and export commands
+
+GoGator import/export commands move data across the database boundary.
+
+They do not change the source-of-truth hierarchy defined in `AUTHORITATIVE_SPECIFICATION.md`.
+
+### Import commands
+
+Import commands load external files into the GoGator database.
+
+~~~text
+import gps [from] <file...>
+import sites [from] <file>
+import routes [from] <file>
+~~~
+
+Rules:
+
+- `import gps` loads raw GPS tracker evidence.
+- `import sites` loads known-site records.
+- `import routes` loads known, approved, learned, or seed route records.
+- After import, the database is authoritative.
+- Imported files must not remain part of runtime decision-making.
+- Re-running import behaviour must be deterministic and auditable.
+
+### Export commands
+
+Export commands write database records, reports, or database-backed engine output to reviewable files.
+
+~~~text
+export gps [date] [[as] file]
+export sites [[as] file]
+export routes [[as] file]
+export trips [date] [[as] file]
+export jitter [date] [[as] file]
+export stats [date] [[as] file]
+export issues [date] [[as] file]
+export paths [route/date] [[as] file]
+~~~
+
+Rules:
+
+- `export gps` writes GPS evidence from the database.
+- `export sites` writes known-site records from the database.
+- `export routes` writes known, approved, learned, or seed route records from the database.
+- `export trips` writes trip/itinerary output generated from database-backed engine processing.
+- `export jitter` writes rejected, low-confidence, noise, or reviewable movement artefacts.
+- `export stats` writes summary/reporting output.
+- `export issues` writes reviewable anomalies, warnings, CHECK evidence, and processing issues.
+- `export paths` writes route/path evidence for a selected route, date range, or route/date filter.
+- Exported files are reports or interchange copies.
+- Exported files are not runtime inputs unless explicitly re-imported through an import command.
+
+Future import/export commands must preserve the same direction:
+
+~~~text
+import: file -> database
+export: database/engine -> file
+runtime: database -> engine
+~~~
+
 ### `gogator process`
 
-Intent: process raw Gator/Teltonika CSV rows into deterministic trip logs while preserving enough raw evidence to debug suspicious tracker behaviour.
+Intent: process raw Gator/Teltonika data into deterministic trip logs while preserving enough raw evidence to debug suspicious tracker behaviour.
 
 Examples:
 
@@ -29,45 +90,45 @@ Outputs:
 <input>_audit.csv
 ```
 
-### `gogator load gator [from] <file...>`
+### `gogator import gator [from] <file...>`
 
-Intent: load Gator/Teltonika tracker CSV or TSV rows into the SQLite database.
+Intent: import Gator/Teltonika tracker CSV or TSV rows into the SQLite database.
 
 Examples:
 
 ```bash
-gogator load gator from 2026-04_raw.csv
-gogator load gator 2026-04_raw.csv
+gogator import gator from 2026-04_raw.csv
+gogator import gator 2026-04_raw.csv
 ```
 
-### `gogator dump gator [[as] file]`
+### `gogator export gator [[as] file]`
 
-Intent: dump SQLite GPS rows back out as a Gator-compatible tracker CSV.
+Intent: export SQLite GPS rows back out as a Gator-compatible tracker CSV.
 
 Example:
 
 ```bash
-gogator dump gator as tracker-backup.csv
+gogator export gator as tracker-backup.csv
 ```
 
-### `gogator load google [from] <file...>`
+### `gogator import google [from] <file...>`
 
-Intent: planned future loader for Google tracker/location data. Currently recognised and returns `not implemented yet`.
+Intent: planned future importer for Google tracker/location data. Currently recognised and returns `not implemented yet`.
 
 Example:
 
 ```bash
-gogator load google from google.json
+gogator import google from google.json
 ```
 
-### `gogator dump google [[as] file]`
+### `gogator export google [[as] file]`
 
-Intent: planned future dumper for Google tracker/location data. Currently recognised and returns `not implemented yet`.
+Intent: planned future exporter for Google tracker/location data. Currently recognised and returns `not implemented yet`.
 
 Example:
 
 ```bash
-gogator dump google as google.json
+gogator export google as google.json
 ```
 
 ### `gogator add route <index> from <route_observations.csv>`
@@ -100,10 +161,10 @@ gogator db status
 gogator db backup as gogator-backup.sqlite
 gogator db vacuum
 
-gogator load gator from 2026-04_raw.csv
-gogator dump gator as 2026-04_gator.csv
-gogator load google from google.json
-gogator dump google as google.json
+gogator import gator from 2026-04_raw.csv
+gogator export gator as 2026-04_gator.csv
+gogator import google from google.json
+gogator export google as google.json
 
 gogator import sites from sites.tsv
 gogator import routes from routes.tsv
