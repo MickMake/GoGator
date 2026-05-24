@@ -9,6 +9,7 @@ import (
 func Run(ctx context.Context, in Input) (Result, error) {
 	_ = ctx
 	adapter := LegacyAdapter{}
+	_ = newMapMatcher(resolveEngineConfig(in))
 	points := append([]gps.RawPoint(nil), in.Points...)
 	enableQuality := in.EngineConfig.Quality
 	motionCfg := in.EngineConfig.Motion
@@ -67,4 +68,13 @@ func Run(ctx context.Context, in Input) (Result, error) {
 		comparison = compareCandidateTrips(candidateTrips, valid, jitter, shadowCfg)
 	}
 	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, CandidateTrips: candidateTrips, TripComparison: comparison, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
+}
+
+func resolveEngineConfig(in Input) EngineConfig {
+	if in.EngineConfig != (EngineConfig{}) {
+		return in.EngineConfig
+	}
+	return EngineConfig{
+		Valhalla: ValhallaConfig{Enabled: in.Config.Valhalla.Enabled, BaseURL: in.Config.Valhalla.BaseURL, TimeoutSeconds: in.Config.Valhalla.TimeoutSeconds, Endpoint: in.Config.Valhalla.Endpoint, MaxPointsPerRequest: in.Config.Valhalla.MaxPointsPerRequest},
+	}
 }

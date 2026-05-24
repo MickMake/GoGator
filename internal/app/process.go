@@ -194,7 +194,7 @@ func runProcessCombined(opts Options, cfg config.Config, loc *time.Location) err
 	routesPath := resolveSiblingPath(cfg.Routes, primaryInput)
 	routeRules, err := routes.Load(routesPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: could not load routes %s: %v; route rules will be skipped\n", routesPath)
+		fmt.Fprintf(os.Stderr, "warning: could not load routes %s: %v; route rules will be skipped\n", routesPath, err)
 	}
 	if len(routeRules) == 0 {
 		fmt.Fprintf(os.Stderr, "loaded routes: 0 from %s; observations will still be generated\n", routesPath)
@@ -475,7 +475,7 @@ func buildEngineConfig(cfg config.Config) engine.EngineConfig {
 		},
 		Quality:  cfg.Engine.Quality.Enabled,
 		Audit:    cfg.Engine.Audit.Enabled,
-		Valhalla: cfg.Valhalla.Enabled,
+		Valhalla: engine.ValhallaConfig{Enabled: cfg.Valhalla.Enabled, BaseURL: cfg.Valhalla.BaseURL, TimeoutSeconds: cfg.Valhalla.TimeoutSeconds, Endpoint: cfg.Valhalla.Endpoint, MaxPointsPerRequest: cfg.Valhalla.MaxPointsPerRequest},
 		H3:       cfg.H3.Enabled,
 		PostGIS:  cfg.PostGIS.Enabled,
 	}

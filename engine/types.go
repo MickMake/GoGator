@@ -25,9 +25,17 @@ type EngineConfig struct {
 	Motion            MotionConfig
 	Quality           bool
 	Audit             bool
-	Valhalla          bool
+	Valhalla          ValhallaConfig
 	H3                bool
 	PostGIS           bool
+}
+
+type ValhallaConfig struct {
+	Enabled             bool
+	BaseURL             string
+	TimeoutSeconds      int
+	Endpoint            string
+	MaxPointsPerRequest int
 }
 
 type Result struct {

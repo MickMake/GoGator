@@ -20,6 +20,14 @@
 - Engine mode is experimental; use shadow diagnostics first on representative test data before switching official output to engine mode.
 - No Valhalla, H3, or PostGIS integrations are added in this release.
 
+## Valhalla map-matching client scaffold (v0.26.14)
+
+- Added an optional `engine/mapmatch` Valhalla HTTP client scaffold plus a `NoopMapMatcher` fallback.
+- Valhalla remains disabled by default (`valhalla.enabled: false`) and normal processing does not require any live Valhalla server.
+- This release wires construction/selection only (Noop when disabled, Valhalla client when enabled).
+- Current status: matched results are parsed for future diagnostics use, but are not yet used to alter trips, routes, selection outcomes, or official CSV outputs.
+- Future intended use: map-matched route confidence, edge/path diagnostics, and route anomaly evidence.
+
 ## Config scaffolding (placeholders)
 
 - New configuration sections are now accepted and passed through `engine.Input.EngineConfig`:
@@ -36,6 +44,10 @@
   - `engine.compatibility_mode: true`
   - `engine.audit.enabled: false`
   - `valhalla.enabled: false`
+  - `valhalla.base_url: ""`
+  - `valhalla.timeout_seconds: 10`
+  - `valhalla.endpoint: trace_route`
+  - `valhalla.max_points_per_request: 500`
   - `h3.enabled: false`
   - `postgis.enabled: false`
 - These options are currently scaffolding only; they are parsed and passed through but do not alter trip logic yet.
