@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -325,9 +326,9 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 	valid, jitter := result.Valid, result.Jitter
 	jitterReview, jitterSameSite := result.JitterReview, result.JitterSameSite
 	observations, anomalies := result.RouteObservations, result.RouteAnomalies
-	selection := engine.EngineModeSelection{RequestedTripSource: tripSource, SelectedTripSource: tripSource, Accepted: true, Readiness: result.TripComparison.ShadowSummary.Readiness}
+	selection := engine.EngineModeSelection{RequestedTripSource: tripSource, SelectedTripSource: tripSource, Accepted: true, Readiness: result.TripComparison.ShadowSummary.Readiness, CandidateCount: len(result.CandidateTrips.Trips)}
 	if tripSource == "engine" {
-		pol := engine.EngineModePolicy{RequireMinReadiness: cfg.Engine.EngineMode.RequireMinReadiness, MinReadiness: engine.ShadowReadiness(cfg.Engine.EngineMode.MinReadiness), AllowLowConfidence: cfg.Engine.EngineMode.AllowLowConfidence, AllowGapAffected: cfg.Engine.EngineMode.AllowGapAffected, AllowEmptyCandidates: cfg.Engine.EngineMode.AllowEmptyCandidates, FallbackToLegacyOnReject: cfg.Engine.EngineMode.FallbackToLegacyOnReject, MaxUnmatchedLegacyPercent: cfg.Engine.EngineMode.MaxUnmatchedLegacyPercent, MaxBoundaryDeltaMinutes: cfg.Engine.EngineMode.MaxBoundaryDeltaMinutes}
+		pol := engine.EngineModePolicy{RequireMinReadiness: cfg.Engine.EngineMode.RequireMinReadiness, MinReadiness: engine.ShadowReadiness(cfg.Engine.EngineMode.MinReadiness), AllowLowConfidence: cfg.Engine.EngineMode.AllowLowConfidence, AllowGapAffected: cfg.Engine.EngineMode.AllowGapAffected, AllowEmptyCandidates: cfg.Engine.EngineMode.AllowEmptyCandidates, FallbackToLegacyOnReject: cfg.Engine.EngineMode.FallbackToLegacyOnReject, MaxUnmatchedLegacyPercent: cfg.Engine.EngineMode.MaxUnmatchedLegacyPercent, MaxBoundaryDeltaMinutes: cfg.Engine.EngineMode.MaxBoundaryDeltaMinutes, RejectNoiseAffected: true}
 		selection, err = engine.ValidateEngineMode(result.CandidateTrips, result.TripComparison.ShadowSummary, pol)
 		if err != nil {
 			return processResult{}, err
@@ -343,6 +344,8 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 			jitterReview, jitterSameSite = splitJitterTrips(jitter)
 		}
 	}
+	selection.OfficialValidCount = len(valid)
+	selection.OfficialJitterCount = len(jitter)
 	diag := result.Diagnostics()
 	diag.EngineSelection = selection
 	return processResult{Points: result.Points, Valid: valid, Jitter: jitter, JitterReview: jitterReview, JitterSameSite: jitterSameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: result.SiteCount, RouteCount: result.RouteCount, EngineDiagnostics: diag, Config: cfg}, nil
@@ -363,14 +366,14 @@ func resolveTripSource(cfg config.Config) (string, error) {
 
 func adaptCandidateTrips(c []engine.CandidateTrip, points []gps.RawPoint) (valid []gps.Trip, jitter []gps.Trip) {
 	for i, ct := range c {
-		t := gps.Trip{
-			Index:           i + 1,
-			Start:           ct.StartTime,
-			End:             ct.EndTime,
-			DepartureSite:   ct.OriginLabel,
-			DestinationSite: ct.DestinationLabel,
-			DistanceKM:      ct.ApproxDistanceM / 1000.0,
-			DurationHours:   ct.EndTime.Sub(ct.StartTime).Hours(),
+		t := gps.Trip{Index: i + 1, Start: ct.StartTime, End: ct.EndTime, DepartureSite: strings.TrimSpace(ct.OriginLabel), DestinationSite: strings.TrimSpace(ct.DestinationLabel)}
+		if ct.Duration > 0 {
+			t.DurationHours = ct.Duration.Hours()
+		} else {
+			t.DurationHours = ct.EndTime.Sub(ct.StartTime).Hours()
+		}
+		if ct.ApproxDistanceM > 0 {
+			t.DistanceKM = ct.ApproxDistanceM / 1000.0
 		}
 		if p, ok := candidatePoint(points, ct.SourcePointStart); ok {
 			t.RawStartRow, t.DepartLat, t.DepartLng, t.Filename = p.RawRow, p.Lat, p.Lng, p.SourceFile
@@ -381,10 +384,13 @@ func adaptCandidateTrips(c []engine.CandidateTrip, points []gps.RawPoint) (valid
 				t.Filename = p.SourceFile
 			}
 		}
-		if t.RawEndRow < t.RawStartRow {
+		if t.RawStartRow > 0 && t.RawEndRow < t.RawStartRow {
 			t.RawEndRow = t.RawStartRow
 		}
-		t.Flags = append(t.Flags, "engine_candidate", "engine_type:"+string(ct.Type), "engine_confidence:"+string(ct.Confidence))
+		t.Flags = append(t.Flags, "engine_candidate", "engine_type:"+string(ct.Type), "engine_confidence:"+string(ct.Confidence), "engine_source_points:"+strconv.Itoa(ct.SourcePointStart)+"-"+strconv.Itoa(ct.SourcePointEnd))
+		if ct.OriginVisitIndex >= 0 || ct.DestinationVisitIndex >= 0 {
+			t.Flags = append(t.Flags, "engine_visits:"+strconv.Itoa(ct.OriginVisitIndex)+"-"+strconv.Itoa(ct.DestinationVisitIndex))
+		}
 		for _, r := range ct.Reasons {
 			t.Flags = append(t.Flags, "engine_reason:"+string(r))
 		}
@@ -402,7 +408,19 @@ func adaptCandidateTrips(c []engine.CandidateTrip, points []gps.RawPoint) (valid
 }
 
 func isCandidateJitter(ct engine.CandidateTrip) bool {
-	if ct.Confidence == engine.CandidateConfidenceLow || ct.Type == engine.CandidateTripLowConfidence || ct.Type == engine.CandidateTripGapAffected || ct.Type == engine.CandidateTripNoiseAffected {
+	switch ct.Confidence {
+	case engine.CandidateConfidenceLow:
+		return true
+	case engine.CandidateConfidenceMedium:
+		if ct.Type == engine.CandidateTripGapAffected || ct.Type == engine.CandidateTripNoiseAffected || ct.Type == engine.CandidateTripLowConfidence {
+			return true
+		}
+	case engine.CandidateConfidenceHigh:
+		if ct.Type == engine.CandidateTripNoiseAffected {
+			return true
+		}
+	}
+	if ct.Type == engine.CandidateTripGapAffected || ct.Type == engine.CandidateTripNoiseAffected || ct.Type == engine.CandidateTripLowConfidence {
 		return true
 	}
 	for _, w := range ct.Warnings {

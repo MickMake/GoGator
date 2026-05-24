@@ -250,17 +250,17 @@ func writeShadowMismatches(path string, mm []engine.ShadowMismatch) error {
 }
 
 func writeEngineSelection(path string, s engine.EngineModeSelection) error {
-	w, f, err := createCSV(path, []string{"selected_trip_source", "requested_trip_source", "accepted", "fallback_used", "readiness", "reason", "severity"})
+	w, f, err := createCSV(path, []string{"selected_trip_source", "requested_trip_source", "accepted", "fallback_used", "readiness", "candidate_count", "official_valid_count", "official_jitter_count", "rejected_candidate_count", "reason", "severity"})
 	if err != nil {
 		return err
 	}
 	if len(s.Reasons) == 0 {
-		if err := w.Write([]string{s.SelectedTripSource, s.RequestedTripSource, strconv.FormatBool(s.Accepted), strconv.FormatBool(s.FallbackUsed), string(s.Readiness), "", ""}); err != nil {
+		if err := w.Write([]string{s.SelectedTripSource, s.RequestedTripSource, strconv.FormatBool(s.Accepted), strconv.FormatBool(s.FallbackUsed), string(s.Readiness), itoa(s.CandidateCount), itoa(s.OfficialValidCount), itoa(s.OfficialJitterCount), itoa(s.RejectedCount), "", ""}); err != nil {
 			return err
 		}
 	} else {
 		for _, r := range s.Reasons {
-			if err := w.Write([]string{s.SelectedTripSource, s.RequestedTripSource, strconv.FormatBool(s.Accepted), strconv.FormatBool(s.FallbackUsed), string(s.Readiness), r, "warning"}); err != nil {
+			if err := w.Write([]string{s.SelectedTripSource, s.RequestedTripSource, strconv.FormatBool(s.Accepted), strconv.FormatBool(s.FallbackUsed), string(s.Readiness), itoa(s.CandidateCount), itoa(s.OfficialValidCount), itoa(s.OfficialJitterCount), itoa(s.RejectedCount), r, "warning"}); err != nil {
 				return err
 			}
 		}
