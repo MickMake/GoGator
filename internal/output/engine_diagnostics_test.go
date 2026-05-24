@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"gogator/engine"
 )
@@ -56,5 +57,18 @@ func TestWriteEngineDiagnosticsShadowSummaryHeader(t *testing.T) {
 	b, _ := os.ReadFile(p)
 	if !strings.Contains(string(b), "metric,value,severity,notes") {
 		t.Fatalf("missing header")
+	}
+}
+
+func TestWriteEngineDiagnosticsMotionWritesSpeedKPH(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "x_engine_motion.csv")
+	diag := engine.Diagnostics{Motion: []engine.MotionSample{{Index: 1, Time: time.Date(2026, 5, 1, 8, 0, 0, 0, time.UTC), State: engine.MotionMoving, SpeedKPH: 42.25, Reason: engine.MotionReasonSpeedMoving, Quality: engine.QualityGood}}}
+	if err := WriteEngineDiagnostics(diag, EngineDiagnosticPaths{Motion: p}, EngineDiagnosticOptions{Enabled: true, OutputMotion: true}); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(p)
+	if !strings.Contains(string(b), ",42.25,") {
+		t.Fatalf("expected speed_kmh value in motion diagnostics: %s", string(b))
 	}
 }
