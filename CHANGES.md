@@ -1,5 +1,12 @@
 # Changes
 
+## v0.26.10.1
+
+- Preserved baseline candidate-vs-legacy trip comparison diagnostics when `engine.trip_builder.compare_legacy` is enabled even if shadow summary toggles are off, so trip comparison metrics continue to report expected counts.
+- Populated `speed_kmh` in optional `_engine_motion.csv` diagnostics from passive engine point speed evidence while preserving existing headers and opt-in behaviour.
+- Hardened `engine.Result.Diagnostics()` snapshot cloning by deep-copying nested diagnostics slices (reasons, point indexes, unmatched trip lists, and shadow summary metrics/mismatches).
+- Added regression tests covering legacy comparison with shadow summary disabled, non-blank motion speed diagnostics, and deep-copy snapshot immutability.
+
 ## v0.26.10
 
 - Added passive shadow-engine comparison summaries with deterministic readiness ratings and mismatch diagnostics (unmatched trips, boundary drift, and optional origin/destination mismatches) for candidate-vs-legacy trip auditing.

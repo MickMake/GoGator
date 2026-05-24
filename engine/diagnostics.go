@@ -13,13 +13,66 @@ type Diagnostics struct {
 
 func (r Result) Diagnostics() Diagnostics {
 	return Diagnostics{
-		Points:         append([]PointEvidence(nil), r.Evidence.Points...),
+		Points:         clonePointEvidence(r.Evidence.Points),
 		Motion:         append([]MotionSample(nil), r.Motion.Samples...),
-		Stays:          append([]Stay(nil), r.Stays.Stays...),
-		Visits:         append([]Visit(nil), r.Visits.Visits...),
-		Excursions:     append([]Excursion(nil), r.Excursions.Excursions...),
-		CandidateTrips: append([]CandidateTrip(nil), r.CandidateTrips.Trips...),
-		TripComparison: r.TripComparison,
-		ShadowSummary:  r.TripComparison.ShadowSummary,
+		Stays:          cloneStays(r.Stays.Stays),
+		Visits:         cloneVisits(r.Visits.Visits),
+		Excursions:     cloneExcursions(r.Excursions.Excursions),
+		CandidateTrips: cloneCandidateTrips(r.CandidateTrips.Trips),
+		TripComparison: cloneTripComparison(r.TripComparison),
+		ShadowSummary:  cloneShadowSummary(r.TripComparison.ShadowSummary),
 	}
+}
+
+func clonePointEvidence(in []PointEvidence) []PointEvidence {
+	out := append([]PointEvidence(nil), in...)
+	for i := range out {
+		out[i].Quality.Reasons = append([]QualityReason(nil), out[i].Quality.Reasons...)
+	}
+	return out
+}
+func cloneStays(in []Stay) []Stay {
+	out := append([]Stay(nil), in...)
+	for i := range out {
+		out[i].Reasons = append([]StayReason(nil), out[i].Reasons...)
+		out[i].PointIndexes = append([]int(nil), out[i].PointIndexes...)
+	}
+	return out
+}
+func cloneVisits(in []Visit) []Visit {
+	out := append([]Visit(nil), in...)
+	for i := range out {
+		out[i].Reasons = append([]VisitReason(nil), out[i].Reasons...)
+		out[i].PointIndexes = append([]int(nil), out[i].PointIndexes...)
+	}
+	return out
+}
+func cloneExcursions(in []Excursion) []Excursion {
+	out := append([]Excursion(nil), in...)
+	for i := range out {
+		out[i].Reasons = append([]ExcursionReason(nil), out[i].Reasons...)
+		out[i].PointIndexes = append([]int(nil), out[i].PointIndexes...)
+	}
+	return out
+}
+func cloneCandidateTrips(in []CandidateTrip) []CandidateTrip {
+	out := append([]CandidateTrip(nil), in...)
+	for i := range out {
+		out[i].Reasons = append([]CandidateTripReason(nil), out[i].Reasons...)
+		out[i].Warnings = append([]string(nil), out[i].Warnings...)
+	}
+	return out
+}
+func cloneShadowSummary(in ShadowSummary) ShadowSummary {
+	out := in
+	out.Metrics = append([]ShadowMetric(nil), in.Metrics...)
+	out.Mismatches = append([]ShadowMismatch(nil), in.Mismatches...)
+	return out
+}
+func cloneTripComparison(in CandidateTripComparison) CandidateTripComparison {
+	out := in
+	out.UnmatchedCandidateTrips = append([]int(nil), in.UnmatchedCandidateTrips...)
+	out.UnmatchedLegacyTrips = append([]int(nil), in.UnmatchedLegacyTrips...)
+	out.ShadowSummary = cloneShadowSummary(in.ShadowSummary)
+	return out
 }

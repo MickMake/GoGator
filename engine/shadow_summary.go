@@ -106,9 +106,6 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 		cfg.ExcellentMatchThresholdPercent = 90
 	}
 	s := ShadowSummary{LegacyValidTripCount: len(legacyValid), LegacyJitterTripCount: len(legacyJitter), CandidateTripCount: len(candidates.Trips), Readiness: ShadowReadinessNotEvaluated}
-	if !cfg.Enabled || !cfg.SummaryEnabled {
-		return s
-	}
 	tol := cfg.MatchToleranceMinutes
 	ci := sortedCandidates(candidates.Trips)
 	li := sortedLegacy(legacyValid)
@@ -190,17 +187,19 @@ func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJit
 	if s.LegacyValidTripCount > 0 {
 		matchPercent = (float64(s.ApproxMatchedTripCount) / float64(s.LegacyValidTripCount)) * 100
 	}
-	s.Readiness = ShadowReadinessPoorMatch
-	if s.LegacyValidTripCount == 0 && s.CandidateTripCount == 0 {
-		s.Readiness = ShadowReadinessNotEvaluated
-	} else if matchPercent >= cfg.ExcellentMatchThresholdPercent && s.UnmatchedCandidateTripCount == 0 && s.OriginDestinationMismatchCount == 0 {
-		s.Readiness = ShadowReadinessExcellent
-	} else if matchPercent >= cfg.GoodMatchThresholdPercent {
-		s.Readiness = ShadowReadinessGoodMatch
-	} else if matchPercent >= 40 {
-		s.Readiness = ShadowReadinessPartialMatch
+	if cfg.Enabled && cfg.SummaryEnabled {
+		s.Readiness = ShadowReadinessPoorMatch
+		if s.LegacyValidTripCount == 0 && s.CandidateTripCount == 0 {
+			s.Readiness = ShadowReadinessNotEvaluated
+		} else if matchPercent >= cfg.ExcellentMatchThresholdPercent && s.UnmatchedCandidateTripCount == 0 && s.OriginDestinationMismatchCount == 0 {
+			s.Readiness = ShadowReadinessExcellent
+		} else if matchPercent >= cfg.GoodMatchThresholdPercent {
+			s.Readiness = ShadowReadinessGoodMatch
+		} else if matchPercent >= 40 {
+			s.Readiness = ShadowReadinessPartialMatch
+		}
+		s.Metrics = buildShadowMetrics(s, cfg)
 	}
-	s.Metrics = buildShadowMetrics(s, cfg)
 	return s
 }
 

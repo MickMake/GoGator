@@ -35,11 +35,12 @@ type MotionConfig struct {
 }
 
 type MotionSample struct {
-	Index   int
-	Time    time.Time
-	State   MotionState
-	Reason  MotionReason
-	Quality QualityBand
+	Index    int
+	Time     time.Time
+	State    MotionState
+	Reason   MotionReason
+	Quality  QualityBand
+	SpeedKPH float64
 }
 
 type MotionSegment struct {
@@ -110,7 +111,11 @@ func classifyMotion(points []PointEvidence, cfg MotionConfig) MotionEvidence {
 			effective = state
 		}
 
-		out.Samples = append(out.Samples, MotionSample{Index: p.Index, Time: p.Time, State: effective, Reason: reason, Quality: p.Quality.Band})
+		speed := 0.0
+		if p.Signals.Speed != nil {
+			speed = *p.Signals.Speed
+		}
+		out.Samples = append(out.Samples, MotionSample{Index: p.Index, Time: p.Time, State: effective, Reason: reason, Quality: p.Quality.Band, SpeedKPH: speed})
 	}
 	out.Segments = buildMotionSegments(out.Samples)
 	return out
