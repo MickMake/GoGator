@@ -85,6 +85,7 @@ The following files are protected and must not be modified, renamed, moved, refo
 - `engine/README.md`
 - `COMMANDS.md`
 - `TRACKER_SIGNALS.md`
+- `ROUTE_MAPPING_PROCEDURE.md`
 
 Rules:
 
