@@ -28,6 +28,13 @@
 - Current status: matched results are parsed for future diagnostics use, but are not yet used to alter trips, routes, selection outcomes, or official CSV outputs.
 - Future intended use: map-matched route confidence, edge/path diagnostics, and route anomaly evidence.
 
+## Passive Valhalla candidate-trip diagnostics (v0.26.15)
+
+- Valhalla remains disabled by default (`valhalla.enabled: false`), and no live Valhalla server is needed unless you explicitly enable it.
+- When enabled, candidate-trip point traces are map-matched passively for diagnostics only; failures are recorded as diagnostics and do not alter official trip output.
+- Official valid/jitter processed outputs, CLI behaviour, and output schemas remain unchanged.
+- Intended current use: inspect candidate-trip map-match quality before future route-confidence work.
+
 ## Config scaffolding (placeholders)
 
 - New configuration sections are now accepted and passed through `engine.Input.EngineConfig`:

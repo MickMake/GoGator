@@ -7,6 +7,7 @@ type Diagnostics struct {
 	Visits          []Visit
 	Excursions      []Excursion
 	CandidateTrips  []CandidateTrip
+	MapMatch        []CandidateTripMapMatchDiagnostic
 	TripComparison  CandidateTripComparison
 	ShadowSummary   ShadowSummary
 	EngineSelection EngineModeSelection
@@ -20,10 +21,19 @@ func (r Result) Diagnostics() Diagnostics {
 		Visits:          cloneVisits(r.Visits.Visits),
 		Excursions:      cloneExcursions(r.Excursions.Excursions),
 		CandidateTrips:  cloneCandidateTrips(r.CandidateTrips.Trips),
+		MapMatch:        cloneMapMatchDiagnostics(r.MapMatchDiagnostics),
 		TripComparison:  cloneTripComparison(r.TripComparison),
 		ShadowSummary:   cloneShadowSummary(r.TripComparison.ShadowSummary),
 		EngineSelection: EngineModeSelection{},
 	}
+}
+
+func cloneMapMatchDiagnostics(in []CandidateTripMapMatchDiagnostic) []CandidateTripMapMatchDiagnostic {
+	out := append([]CandidateTripMapMatchDiagnostic(nil), in...)
+	for i := range out {
+		out[i].WarningCodes = append([]string(nil), out[i].WarningCodes...)
+	}
+	return out
 }
 
 func clonePointEvidence(in []PointEvidence) []PointEvidence {

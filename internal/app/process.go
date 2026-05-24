@@ -60,6 +60,7 @@ type processOutputPaths struct {
 	EngineShadowSummary    string
 	EngineShadowMismatches string
 	EngineSelection        string
+	EngineMapMatch         string
 	Expanded               string
 	Processed              string
 	Jitter                 string
@@ -256,6 +257,7 @@ func processPaths(prefix string) processOutputPaths {
 		EngineShadowSummary:    prefix + "_engine_shadow_summary.csv",
 		EngineShadowMismatches: prefix + "_engine_shadow_mismatches.csv",
 		EngineSelection:        prefix + "_engine_selection.csv",
+		EngineMapMatch:         prefix + "_engine_mapmatch.csv",
 	}
 }
 
@@ -281,7 +283,7 @@ func writeProcessOutputs(paths processOutputPaths, res processResult) error {
 	if err := output.WriteAudit(paths.Audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount); err != nil {
 		return err
 	}
-	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison, ShadowSummary: paths.EngineShadowSummary, ShadowMismatches: paths.EngineShadowMismatches, Selection: paths.EngineSelection}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison, OutputShadowSummary: res.Config.Engine.Audit.OutputShadowSummary, OutputShadowMismatches: res.Config.Engine.Audit.OutputShadowMismatches, OutputSelection: true})
+	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison, ShadowSummary: paths.EngineShadowSummary, ShadowMismatches: paths.EngineShadowMismatches, Selection: paths.EngineSelection, MapMatch: paths.EngineMapMatch}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison, OutputShadowSummary: res.Config.Engine.Audit.OutputShadowSummary, OutputShadowMismatches: res.Config.Engine.Audit.OutputShadowMismatches, OutputSelection: true})
 }
 
 func printProcessSummary(res processResult) {

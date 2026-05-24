@@ -39,20 +39,21 @@ type ValhallaConfig struct {
 }
 
 type Result struct {
-	Points            []gps.RawPoint
-	Evidence          EvidenceSet
-	Motion            MotionEvidence
-	Stays             StayEvidence
-	Visits            VisitEvidence
-	Excursions        ExcursionEvidence
-	CandidateTrips    CandidateTripEvidence
-	TripComparison    CandidateTripComparison
-	Valid             []gps.Trip
-	Jitter            []gps.Trip
-	JitterReview      []gps.Trip
-	JitterSameSite    []gps.Trip
-	RouteObservations []routes.Observation
-	RouteAnomalies    []routes.Anomaly
-	SiteCount         int
-	RouteCount        int
+	Points              []gps.RawPoint
+	Evidence            EvidenceSet
+	Motion              MotionEvidence
+	Stays               StayEvidence
+	Visits              VisitEvidence
+	Excursions          ExcursionEvidence
+	CandidateTrips      CandidateTripEvidence
+	TripComparison      CandidateTripComparison
+	MapMatchDiagnostics []CandidateTripMapMatchDiagnostic
+	Valid               []gps.Trip
+	Jitter              []gps.Trip
+	JitterReview        []gps.Trip
+	JitterSameSite      []gps.Trip
+	RouteObservations   []routes.Observation
+	RouteAnomalies      []routes.Anomaly
+	SiteCount           int
+	RouteCount          int
 }
