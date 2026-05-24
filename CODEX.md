@@ -1,3 +1,15 @@
+<!--
+PROTECTED FILE - DO NOT EDIT
+
+This file is intentionally protected.
+Do not modify, rewrite, reformat, rename, move, or delete this file.
+
+Codex/AI agents:
+- You must not change this file.
+- If a task appears to require changing this file, stop and report that it is protected.
+- Do not "clean up", "modernise", "simplify", or "deduplicate" this file.
+-->
+
 # GoGator Codex Context
 
 GoGator exists because monthly GPS processing should be repeatable locally, not rebuilt by hand every time a tracker goblin sneezes. Gator's processed drive/stop exports have shown suspicious timestamp and trip-detection behaviour, so raw GPS CSV is the evidence source.
