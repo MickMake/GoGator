@@ -33,7 +33,11 @@ type Engine struct {
 	Motion            EngineMotion
 	Quality           EngineQuality
 	Audit             EngineAudit
+	RouteSignatures   EngineRouteSignatures
+	RouteGrouping     EngineRouteGrouping
 }
+type EngineRouteSignatures struct{ Enabled bool }
+type EngineRouteGrouping struct{ Enabled bool }
 
 type EngineStayDetection struct {
 	Enabled                bool
@@ -106,7 +110,10 @@ type Valhalla struct {
 	Endpoint            string
 	MaxPointsPerRequest int
 }
-type H3 struct{ Enabled bool }
+type H3 struct {
+	Enabled    bool
+	Resolution int
+}
 type PostGIS struct{ Enabled bool }
 
 type TripDetection struct {
@@ -219,7 +226,7 @@ func Default() Config {
 			Audit:   EngineAudit{Enabled: false, OutputDiagnostics: false, OutputPoints: false, OutputMotion: false, OutputStays: false, OutputVisits: false, OutputExcursions: false, OutputCandidateTrips: false, OutputTripComparison: false, OutputShadowSummary: false, OutputShadowMismatches: false},
 		},
 		Valhalla: Valhalla{Enabled: false, BaseURL: "", TimeoutSeconds: 10, Endpoint: "trace_route", MaxPointsPerRequest: 500},
-		H3:       H3{Enabled: false},
+		H3:       H3{Enabled: false, Resolution: 7},
 		PostGIS:  PostGIS{Enabled: false},
 	}
 }
@@ -509,6 +516,14 @@ func apply(cfg *Config, section, key, val string) {
 		case "output_shadow_mismatches":
 			cfg.Engine.Audit.OutputShadowMismatches = b(val, cfg.Engine.Audit.OutputShadowMismatches)
 		}
+	case "engine.route_signatures":
+		if key == "enabled" {
+			cfg.Engine.RouteSignatures.Enabled = b(val, cfg.Engine.RouteSignatures.Enabled)
+		}
+	case "engine.route_grouping":
+		if key == "enabled" {
+			cfg.Engine.RouteGrouping.Enabled = b(val, cfg.Engine.RouteGrouping.Enabled)
+		}
 	case "valhalla":
 		switch key {
 		case "enabled":
@@ -523,8 +538,11 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Valhalla.MaxPointsPerRequest = i(val, cfg.Valhalla.MaxPointsPerRequest)
 		}
 	case "h3":
-		if key == "enabled" {
+		switch key {
+		case "enabled":
 			cfg.H3.Enabled = b(val, cfg.H3.Enabled)
+		case "resolution":
+			cfg.H3.Resolution = i(val, cfg.H3.Resolution)
 		}
 	case "postgis":
 		if key == "enabled" {

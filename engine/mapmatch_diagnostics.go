@@ -18,6 +18,7 @@ type CandidateTripMapMatchDiagnostic struct {
 	WarningCodes          []string
 	Error                 string
 	Confidence            float64
+	MatchedShape          []mapmatch.MatchedShapePoint
 }
 
 func buildMapMatchDiagnostics(matcher mapmatch.MapMatcher, points []gps.RawPoint, trips []CandidateTrip, cfg ValhallaConfig) []CandidateTripMapMatchDiagnostic {
@@ -44,6 +45,7 @@ func buildMapMatchDiagnostics(matcher mapmatch.MapMatcher, points []gps.RawPoint
 		d.EdgeCount = len(res.MatchedEdges)
 		d.WarningCount = len(res.Warnings)
 		d.Confidence = res.Confidence.Score
+		d.MatchedShape = append([]mapmatch.MatchedShapePoint(nil), res.MatchedShape...)
 		d.WarningCodes = make([]string, 0, len(res.Warnings))
 		for _, w := range res.Warnings {
 			code := strings.TrimSpace(w.Code)

@@ -35,6 +35,15 @@
 - Official valid/jitter processed outputs, CLI behaviour, and output schemas remain unchanged.
 - Intended current use: inspect candidate-trip map-match quality before future route-confidence work.
 
+
+## Passive route signatures and grouping diagnostics (v0.26.16)
+
+- Added passive route signatures for candidate trips using a deterministic internal spatial grid-cell placeholder (`grid:<resolution>:<lat_bucket>:<lon_bucket>`).
+- No external H3 dependency or CGO is added in this run; this is intentionally a swap-ready abstraction for future H3 integration.
+- Signature source prefers map-matched shapes when available, otherwise falls back to candidate raw trace points.
+- Added passive deterministic route grouping by identical signatures for diagnostics only.
+- Official valid/jitter outputs, trip-source selection semantics, CLI commands, and processed CSV schemas remain unchanged.
+
 ## Config scaffolding (placeholders)
 
 - New configuration sections are now accepted and passed through `engine.Input.EngineConfig`:

@@ -8,6 +8,8 @@ type Diagnostics struct {
 	Excursions      []Excursion
 	CandidateTrips  []CandidateTrip
 	MapMatch        []CandidateTripMapMatchDiagnostic
+	RouteSignatures []RouteSignature
+	RouteGroups     []RouteGroup
 	TripComparison  CandidateTripComparison
 	ShadowSummary   ShadowSummary
 	EngineSelection EngineModeSelection
@@ -22,6 +24,8 @@ func (r Result) Diagnostics() Diagnostics {
 		Excursions:      cloneExcursions(r.Excursions.Excursions),
 		CandidateTrips:  cloneCandidateTrips(r.CandidateTrips.Trips),
 		MapMatch:        cloneMapMatchDiagnostics(r.MapMatchDiagnostics),
+		RouteSignatures: append([]RouteSignature(nil), r.RouteSignatures...),
+		RouteGroups:     append([]RouteGroup(nil), r.RouteGroups...),
 		TripComparison:  cloneTripComparison(r.TripComparison),
 		ShadowSummary:   cloneShadowSummary(r.TripComparison.ShadowSummary),
 		EngineSelection: EngineModeSelection{},

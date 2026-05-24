@@ -11,12 +11,10 @@ import (
 )
 
 type EngineDiagnosticPaths struct {
-	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison, ShadowSummary, ShadowMismatches, Selection, MapMatch string
+	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison, ShadowSummary, ShadowMismatches, Selection, MapMatch, RouteSignatures, RouteGroups string
 }
 
-type EngineDiagnosticOptions struct {
-	Enabled, OutputDiagnostics, OutputPoints, OutputMotion, OutputStays, OutputVisits, OutputExcursions, OutputCandidateTrips, OutputTripComparison, OutputShadowSummary, OutputShadowMismatches, OutputSelection bool
-}
+type EngineDiagnosticOptions struct{ Enabled, OutputDiagnostics, OutputPoints, OutputMotion, OutputStays, OutputVisits, OutputExcursions, OutputCandidateTrips, OutputTripComparison, OutputShadowSummary, OutputShadowMismatches, OutputSelection, OutputRouteSignatures, OutputRouteGroups bool }
 
 func WriteEngineDiagnostics(diag engine.Diagnostics, paths EngineDiagnosticPaths, o EngineDiagnosticOptions) error {
 	if !o.Enabled {
@@ -78,7 +76,49 @@ func WriteEngineDiagnostics(diag engine.Diagnostics, paths EngineDiagnosticPaths
 			return err
 		}
 	}
+	if all || o.OutputRouteSignatures {
+		if err := writeRouteSignatures(paths.RouteSignatures, diag.RouteSignatures); err != nil {
+			return err
+		}
+	}
+	if all || o.OutputRouteGroups {
+		if err := writeRouteGroups(paths.RouteGroups, diag.RouteGroups); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+func writeRouteSignatures(path string, rows []engine.RouteSignature) error {
+	w, f, err := createCSV(path, []string{"candidate_trip_id", "signature", "source", "point_count", "cell_count", "warning_count", "warnings"})
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		ws := []string{}
+		for _, x := range r.Warnings {
+			ws = append(ws, string(x))
+		}
+		if err := w.Write([]string{itoa(r.CandidateTripID), r.Signature, string(r.Source), itoa(r.PointCount), itoa(r.CellCount), itoa(len(r.Warnings)), strings.Join(ws, ";")}); err != nil {
+			return err
+		}
+	}
+	return flushClose(w, f)
+}
+func writeRouteGroups(path string, rows []engine.RouteGroup) error {
+	w, f, err := createCSV(path, []string{"route_group_id", "signature", "trip_count", "trip_ids"})
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		ids := []string{}
+		for _, id := range r.TripIDs {
+			ids = append(ids, itoa(id))
+		}
+		if err := w.Write([]string{itoa(r.RouteGroupID), r.Signature, itoa(r.TripCount), strings.Join(ids, ";")}); err != nil {
+			return err
+		}
+	}
+	return flushClose(w, f)
 }
 
 func writeMapMatch(path string, rows []engine.CandidateTripMapMatchDiagnostic) error {

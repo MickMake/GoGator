@@ -27,6 +27,9 @@ type EngineConfig struct {
 	Audit             bool
 	Valhalla          ValhallaConfig
 	H3                bool
+	H3Resolution      int
+	RouteSignatures   bool
+	RouteGrouping     bool
 	PostGIS           bool
 }
 
@@ -48,6 +51,8 @@ type Result struct {
 	CandidateTrips      CandidateTripEvidence
 	TripComparison      CandidateTripComparison
 	MapMatchDiagnostics []CandidateTripMapMatchDiagnostic
+	RouteSignatures     []RouteSignature
+	RouteGroups         []RouteGroup
 	Valid               []gps.Trip
 	Jitter              []gps.Trip
 	JitterReview        []gps.Trip
