@@ -7,14 +7,16 @@ GoGator treats the raw GPS export as canonical. Gator processed drive/stop expor
 ## Usage
 
 ```bash
-gogator process <raw-gps.csv>
-gogator process <raw-gps.csv> <more-raw-gps.csv> ...
+gogator load <raw-gps.csv> <more-raw-gps.csv> ...
+gogator import sites
+gogator inport routes as routes.tsv
+gogator process
 ```
 
 Optional overrides:
 
 ```bash
-gogator process <raw-gps.csv> --timezone Australia/Sydney --config gogator.yaml --sites sites.csv --routes routes.csv
+gogator process --config gogator.yaml
 ```
 
 Extended command help:
@@ -29,33 +31,32 @@ gogator add route 3 from 2026-04_route_observations.csv
 ## Defaults
 
 - `config` defaults to `gogator.yaml`.
-- `sites` defaults to the config value, otherwise `sites.csv`.
-- `routes` defaults to the config value, otherwise `routes.csv`.
+- `sites` defaults to the config value, otherwise `sites.tsv`.
+- `routes` defaults to the config value, otherwise `routes.tsv`.
 - timezone priority is `--timezone`, then `GOGATOR_TIMEZONE`, then config, then `Australia/Sydney`.
-- if `sites.csv` or `routes.csv` are not found in the current working directory, the app also checks beside each input raw GPS file.
 
 ## Commands
 
-### `gogator process <raw-gps.csv> [more-raw-gps.csv ...]`
+### `gogator load <raw-gps.csv> [more-raw-gps.csv ...]`
 
-Convert one or more raw Gator/Teltonika GPS files into deterministic, spreadsheet-ready outputs.
+Load one or more raw Gator/Teltonika GPS files into the database ready to be converted into deterministic, spreadsheet-ready outputs.
 
 Examples:
 
 ```bash
-gogator process 2026-04_raw.csv
-gogator process 2026-04_raw.csv 2026-05_raw.csv 2026-06_raw.csv
-gogator process exports/2026-04_raw.csv --config gogator.yaml --sites sites.csv --routes routes.csv
+gogator load 2026-04_raw.csv
+gogator load 2026-04_raw.csv 2026-05_raw.csv 2026-06_raw.csv
+gogator load exports/2026-04_raw.csv --config gogator.yaml
 ```
 
-### `gogator add route <index> from <route_observations.csv>`
+### `gogator add route <index> from <route_observations.tsv>`
 
-Promote one observed route into `routes.csv` so future runs can recognise it as expected.
+Promote one observed route into routes databse table so future runs can recognise it as expected.
 
 Example:
 
 ```bash
-gogator add route 3 from 2026-04_route_observations.csv
+gogator add route 3 from 2026-04_route_observations.tsv
 ```
 
 Routes are advisory only. They can confirm common routes and flag anomalies, but must not silently rewrite destinations.
@@ -70,7 +71,7 @@ dt,lat,lng,altitude,angle,speed,params
 
 Headed and headerless files are supported. Headerless files are assumed to use the field order above.
 
-## Sites CSV
+## Sites TSV
 
 Supported minimum columns:
 
@@ -81,7 +82,7 @@ Home Sweet Home,"28 New Line Rd, West Pennant Hills NSW 2125, Australia","-33.74
 
 `Range` is metres. If blank, the config default radius is used.
 
-The processor matches the nearest site within that row's radius and writes the actual `Site` value from `sites.csv`, e.g. `Home Sweet Home`, not just `Home`.
+The processor matches the nearest site within that row's radius and writes the actual `Site` value from `sites.tsv`, e.g. `Home Sweet Home`, not just `Home`.
 
 Important GPS output rule: matched sites keep the observed/noisy GPS coordinate from the tracker row or cluster. GoGator does **not** replace output GPS values with canonical GPS from `sites.csv`.
 
