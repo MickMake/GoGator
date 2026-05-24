@@ -52,17 +52,6 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	excursions := detectExcursions(visits, excCfg)
 	candidateTrips := detectCandidateTrips(visits, excursions, tripBuilderCfg)
 	mapMatchDiagnostics := buildMapMatchDiagnostics(matcher, points, candidateTrips.Trips, engineCfg.Valhalla)
-	if len(mapMatchDiagnostics) > 0 {
-		for i := range candidateTrips.Trips {
-			if i >= len(mapMatchDiagnostics) {
-				break
-			}
-			d := mapMatchDiagnostics[i]
-			if d.Error != "" && d.Error != "insufficient_points" {
-				candidateTrips.Trips[i].Warnings = append(candidateTrips.Trips[i].Warnings, "mapmatch_error")
-			}
-		}
-	}
 	points = adapter.Classify(points, in)
 	valid, jitter := adapter.BuildTrips(points, in)
 	valid, jitter = adapter.ApplyImportant(valid, jitter, in)

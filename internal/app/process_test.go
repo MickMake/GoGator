@@ -145,3 +145,48 @@ func TestEngineFallbackSelectionDiagnostics(t *testing.T) {
 		t.Fatalf("expected legacy fallback selection, got %+v", res.EngineDiagnostics.EngineSelection)
 	}
 }
+
+func TestEngineTripSourceMapMatchErrorDoesNotLeakIntoWarnings(t *testing.T) {
+	orig := runEngine
+	t.Cleanup(func() { runEngine = orig })
+	base := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
+	runEngine = func(_ context.Context, _ engine.Input) (engine.Result, error) {
+		return engine.Result{
+			Points: []gps.RawPoint{
+				{RawRow: 10, SourceFile: "a.csv", Lat: -33, Lng: 151},
+				{RawRow: 20, SourceFile: "a.csv", Lat: -34, Lng: 150},
+			},
+			CandidateTrips: engine.CandidateTripEvidence{Trips: []engine.CandidateTrip{
+				{
+					StartTime:        base,
+					EndTime:          base.Add(10 * time.Minute),
+					OriginLabel:      "A",
+					DestinationLabel: "B",
+					SourcePointStart: 0,
+					SourcePointEnd:   1,
+				},
+			}},
+			MapMatchDiagnostics: []engine.CandidateTripMapMatchDiagnostic{
+				{CandidateTripID: 1, Error: "valhalla_unavailable"},
+			},
+			TripComparison: engine.CandidateTripComparison{ShadowSummary: engine.ShadowSummary{Readiness: engine.ShadowReadinessGoodMatch}},
+		}, nil
+	}
+	cfg := config.Default()
+	cfg.Engine.TripSource = "engine"
+	res, err := runProcessPipeline(nil, nil, nil, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Valid) != 1 {
+		t.Fatalf("expected one adapted trip, got %d", len(res.Valid))
+	}
+	for _, f := range res.Valid[0].Flags {
+		if f == "engine_warning:mapmatch_error" {
+			t.Fatalf("did not expect map-match diagnostic leakage into adapted trip flags: %+v", res.Valid[0].Flags)
+		}
+	}
+	if len(res.EngineDiagnostics.MapMatch) != 1 || res.EngineDiagnostics.MapMatch[0].Error == "" {
+		t.Fatalf("expected map-match error to remain in diagnostics, got %+v", res.EngineDiagnostics.MapMatch)
+	}
+}
