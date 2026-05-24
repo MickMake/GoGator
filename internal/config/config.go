@@ -23,6 +23,7 @@ type Config struct {
 type Engine struct {
 	Enabled           bool
 	CompatibilityMode bool
+	TripSource        string
 	StayDetection     EngineStayDetection
 	Visits            EngineVisits
 	Excursions        EngineExcursions
@@ -176,6 +177,7 @@ func Default() Config {
 		Engine: Engine{
 			Enabled:           true,
 			CompatibilityMode: true,
+			TripSource:        "legacy",
 			StayDetection: EngineStayDetection{
 				Enabled:                false,
 				MinDurationMinutes:     5,
@@ -360,6 +362,8 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.Enabled = b(val, cfg.Engine.Enabled)
 		case "compatibility_mode":
 			cfg.Engine.CompatibilityMode = b(val, cfg.Engine.CompatibilityMode)
+		case "trip_source":
+			cfg.Engine.TripSource = strings.ToLower(strings.TrimSpace(val))
 		}
 	case "engine.stay_detection":
 		switch key {
