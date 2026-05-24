@@ -71,3 +71,25 @@ func TestLoadNestedSectionSiblingResetsToParentSection(t *testing.T) {
 		t.Fatalf("expected trip_source=shadow, got %q", cfg.Engine.TripSource)
 	}
 }
+
+func TestLoadPostGISScaffoldFields(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "gogator.yaml")
+	data := `postgis:
+  enabled: true
+  dsn: postgresql://user:pass@localhost/db
+  match_radius_meters: 250
+  audit_enabled: true
+`
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.PostGIS.DSN == "" || cfg.PostGIS.MatchRadiusMeters != 250 || !cfg.PostGIS.AuditEnabled {
+		t.Fatalf("expected postgis scaffold fields loaded, got %+v", cfg.PostGIS)
+	}
+}

@@ -112,7 +112,7 @@ func TestRunDefaultEngineConfigIsBehaviorNeutral(t *testing.T) {
 			Audit:             cfg.Engine.Audit.Enabled,
 			Valhalla:          ValhallaConfig{Enabled: cfg.Valhalla.Enabled},
 			H3:                cfg.H3.Enabled,
-			PostGIS:           cfg.PostGIS.Enabled,
+			PostGIS:           PostGISConfig{Enabled: cfg.PostGIS.Enabled, DSN: cfg.PostGIS.DSN, MatchRadiusMeters: cfg.PostGIS.MatchRadiusMeters, AuditEnabled: cfg.PostGIS.AuditEnabled},
 		},
 	})
 	if err != nil {

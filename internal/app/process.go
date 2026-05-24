@@ -486,7 +486,7 @@ func buildEngineConfig(cfg config.Config) engine.EngineConfig {
 		H3Resolution:    cfg.H3.Resolution,
 		RouteSignatures: cfg.Engine.RouteSignatures.Enabled,
 		RouteGrouping:   cfg.Engine.RouteGrouping.Enabled,
-		PostGIS:         cfg.PostGIS.Enabled,
+		PostGIS:         engine.PostGISConfig{Enabled: cfg.PostGIS.Enabled, DSN: cfg.PostGIS.DSN, MatchRadiusMeters: cfg.PostGIS.MatchRadiusMeters, AuditEnabled: cfg.PostGIS.AuditEnabled},
 	}
 }
 
