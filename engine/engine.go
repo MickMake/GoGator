@@ -9,7 +9,8 @@ import (
 func Run(ctx context.Context, in Input) (Result, error) {
 	_ = ctx
 	adapter := LegacyAdapter{}
-	_ = newMapMatcher(resolveEngineConfig(in))
+	engineCfg := resolveEngineConfig(in)
+	matcher := newMapMatcher(engineCfg)
 	points := append([]gps.RawPoint(nil), in.Points...)
 	enableQuality := in.EngineConfig.Quality
 	motionCfg := in.EngineConfig.Motion
@@ -50,6 +51,18 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	visits := detectVisits(stays, in.Sites, visitsCfg)
 	excursions := detectExcursions(visits, excCfg)
 	candidateTrips := detectCandidateTrips(visits, excursions, tripBuilderCfg)
+	mapMatchDiagnostics := buildMapMatchDiagnostics(matcher, points, candidateTrips.Trips, engineCfg.Valhalla)
+	if len(mapMatchDiagnostics) > 0 {
+		for i := range candidateTrips.Trips {
+			if i >= len(mapMatchDiagnostics) {
+				break
+			}
+			d := mapMatchDiagnostics[i]
+			if d.Error != "" && d.Error != "insufficient_points" {
+				candidateTrips.Trips[i].Warnings = append(candidateTrips.Trips[i].Warnings, "mapmatch_error")
+			}
+		}
+	}
 	points = adapter.Classify(points, in)
 	valid, jitter := adapter.BuildTrips(points, in)
 	valid, jitter = adapter.ApplyImportant(valid, jitter, in)
@@ -67,7 +80,7 @@ func Run(ctx context.Context, in Input) (Result, error) {
 		}
 		comparison = compareCandidateTrips(candidateTrips, valid, jitter, shadowCfg)
 	}
-	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, CandidateTrips: candidateTrips, TripComparison: comparison, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
+	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, CandidateTrips: candidateTrips, MapMatchDiagnostics: mapMatchDiagnostics, TripComparison: comparison, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
 }
 
 func resolveEngineConfig(in Input) EngineConfig {

@@ -1,5 +1,12 @@
 # Changes
 
+## v0.26.15
+
+- Added passive Valhalla map-match diagnostics for engine candidate trips using the existing optional `engine/mapmatch` client path; default behaviour remains legacy and unchanged when Valhalla is disabled.
+- Kept map-matching advisory-only: successful/failed match outcomes are captured in engine diagnostics without changing official valid/jitter output, trip-source selection, routes, readiness decisions, or processed CSV headers.
+- Extended optional engine diagnostics output with `_engine_mapmatch.csv` when diagnostics are enabled, preserving existing diagnostic CSV schemas.
+- Added focused tests for disabled/no-call behaviour, enabled mocked map-matching behaviour, and passive diagnostic emission.
+
 ## v0.26.14
 
 - Added optional Valhalla HTTP map-matching client scaffolding under `engine/mapmatch` with a clean map-matching interface boundary and a safe `NoopMapMatcher` default path.

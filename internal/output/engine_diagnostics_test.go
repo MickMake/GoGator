@@ -85,3 +85,16 @@ func TestWriteEngineDiagnosticsSelectionIncludesCounts(t *testing.T) {
 		t.Fatalf("missing extended header: %s", string(b))
 	}
 }
+
+func TestWriteEngineDiagnosticsMapMatchHeader(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "x_engine_mapmatch.csv")
+	diag := engine.Diagnostics{MapMatch: []engine.CandidateTripMapMatchDiagnostic{{CandidateTripID: 1, Matched: true}}}
+	if err := WriteEngineDiagnostics(diag, EngineDiagnosticPaths{MapMatch: p, Points: filepath.Join(d, "x_engine_points.csv"), Motion: filepath.Join(d, "x_engine_motion.csv"), Stays: filepath.Join(d, "x_engine_stays.csv"), Visits: filepath.Join(d, "x_engine_visits.csv"), Excursions: filepath.Join(d, "x_engine_excursions.csv"), CandidateTrips: filepath.Join(d, "x_engine_candidate_trips.csv"), TripComparison: filepath.Join(d, "x_engine_trip_comparison.csv"), ShadowSummary: filepath.Join(d, "x_engine_shadow_summary.csv"), ShadowMismatches: filepath.Join(d, "x_engine_shadow_mismatches.csv"), Selection: filepath.Join(d, "x_engine_selection.csv")}, EngineDiagnosticOptions{Enabled: true, OutputDiagnostics: true}); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(p)
+	if !strings.Contains(string(b), "candidate_trip_id,matched,matched_distance_meters") {
+		t.Fatalf("missing mapmatch header: %s", string(b))
+	}
+}

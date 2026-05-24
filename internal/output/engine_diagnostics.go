@@ -11,7 +11,7 @@ import (
 )
 
 type EngineDiagnosticPaths struct {
-	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison, ShadowSummary, ShadowMismatches, Selection string
+	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison, ShadowSummary, ShadowMismatches, Selection, MapMatch string
 }
 
 type EngineDiagnosticOptions struct {
@@ -73,7 +73,25 @@ func WriteEngineDiagnostics(diag engine.Diagnostics, paths EngineDiagnosticPaths
 			return err
 		}
 	}
+	if all {
+		if err := writeMapMatch(paths.MapMatch, diag.MapMatch); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func writeMapMatch(path string, rows []engine.CandidateTripMapMatchDiagnostic) error {
+	w, f, err := createCSV(path, []string{"candidate_trip_id", "matched", "matched_distance_meters", "matched_duration_seconds", "edge_count", "warning_count", "error", "confidence"})
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if err := w.Write([]string{itoa(r.CandidateTripID), strconv.FormatBool(r.Matched), ftoa(r.MatchedDistanceMeters, 2), ftoa(r.MatchedDurationSecs, 2), itoa(r.EdgeCount), itoa(r.WarningCount), r.Error, ftoa(r.Confidence, 4)}); err != nil {
+			return err
+		}
+	}
+	return flushClose(w, f)
 }
 
 func createCSV(path string, headers []string) (*csv.Writer, *os.File, error) {
