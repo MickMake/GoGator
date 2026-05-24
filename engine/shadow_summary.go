@@ -75,24 +75,56 @@ type ShadowConfig struct {
 }
 
 func compareCandidateTrips(candidates CandidateTripEvidence, legacyValid, legacyJitter []gps.Trip, cfg ShadowConfig) CandidateTripComparison {
-	summary := buildShadowSummary(candidates, legacyValid, legacyJitter, cfg)
-	cmp := CandidateTripComparison{
-		CandidateTripCount:           summary.CandidateTripCount,
-		LegacyValidTripCount:         summary.LegacyValidTripCount,
-		LegacyJitterTripCount:        summary.LegacyJitterTripCount,
-		ApproxMatchedTrips:           summary.ApproxMatchedTripCount,
-		MajorTimeBoundaryDifferences: 0,
-		SiteDifferenceCount:          summary.OriginDestinationMismatchCount,
-	}
-	for _, mm := range summary.Mismatches {
-		if mm.Type == "BoundaryDelta" && mm.Severity != ShadowSeverityInfo {
+	cmp := CandidateTripComparison{CandidateTripCount: len(candidates.Trips), LegacyValidTripCount: len(legacyValid), LegacyJitterTripCount: len(legacyJitter)}
+	used := map[int]bool{}
+	for ci, c := range candidates.Trips {
+		best := -1
+		for li, l := range legacyValid {
+			if used[li] {
+				continue
+			}
+			if approxMatchLegacyTrip(c, l) {
+				best = li
+				break
+			}
+		}
+		if best == -1 {
+			cmp.UnmatchedCandidateTrips = append(cmp.UnmatchedCandidateTrips, ci)
+			continue
+		}
+		cmp.ApproxMatchedTrips++
+		used[best] = true
+		l := legacyValid[best]
+		if math.Abs(c.StartTime.Sub(l.Start).Minutes()) > 10 || math.Abs(c.EndTime.Sub(l.End).Minutes()) > 10 {
 			cmp.MajorTimeBoundaryDifferences++
 		}
+		if (c.OriginLabel != "" && c.OriginLabel != l.DepartureSite) || (c.DestinationLabel != "" && c.DestinationLabel != l.DestinationSite) {
+			cmp.SiteDifferenceCount++
+		}
 	}
-	cmp.UnmatchedCandidateTrips = make([]int, summary.UnmatchedCandidateTripCount)
-	cmp.UnmatchedLegacyTrips = make([]int, summary.UnmatchedLegacyTripCount)
-	cmp.ShadowSummary = summary
+	for i := range legacyValid {
+		if !used[i] {
+			cmp.UnmatchedLegacyTrips = append(cmp.UnmatchedLegacyTrips, i)
+		}
+	}
+	cmp.ShadowSummary = buildShadowSummary(candidates, legacyValid, legacyJitter, cfg)
 	return cmp
+}
+
+func approxMatchLegacyTrip(c CandidateTrip, l gps.Trip) bool {
+	if math.Abs(c.StartTime.Sub(l.Start).Minutes()) > 20 {
+		return false
+	}
+	if math.Abs(c.EndTime.Sub(l.End).Minutes()) > 20 {
+		return false
+	}
+	if c.OriginLabel != "" && l.DepartureSite != "" && c.OriginLabel != l.DepartureSite {
+		return false
+	}
+	if c.DestinationLabel != "" && l.DestinationSite != "" && c.DestinationLabel != l.DestinationSite {
+		return false
+	}
+	return true
 }
 
 func buildShadowSummary(candidates CandidateTripEvidence, legacyValid, legacyJitter []gps.Trip, cfg ShadowConfig) ShadowSummary {
