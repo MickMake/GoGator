@@ -14,6 +14,7 @@ type EngineModePolicy struct {
 	FallbackToLegacyOnReject  bool
 	MaxUnmatchedLegacyPercent float64
 	MaxBoundaryDeltaMinutes   float64
+	RejectNoiseAffected       bool
 }
 
 type EngineModeSelection struct {
@@ -25,10 +26,14 @@ type EngineModeSelection struct {
 	Reasons             []string
 	WarningCount        int
 	MajorMismatchCount  int
+	CandidateCount      int
+	OfficialValidCount  int
+	OfficialJitterCount int
+	RejectedCount       int
 }
 
 func ValidateEngineMode(candidates CandidateTripEvidence, summary ShadowSummary, policy EngineModePolicy) (EngineModeSelection, error) {
-	sel := EngineModeSelection{RequestedTripSource: "engine", SelectedTripSource: "engine", Accepted: true, Readiness: summary.Readiness}
+	sel := EngineModeSelection{RequestedTripSource: "engine", SelectedTripSource: "engine", Accepted: true, Readiness: summary.Readiness, CandidateCount: len(candidates.Trips)}
 	if err := validateReadinessValue(policy.MinReadiness); err != nil {
 		return sel, err
 	}
@@ -53,6 +58,9 @@ func ValidateEngineMode(candidates CandidateTripEvidence, summary ShadowSummary,
 	if !policy.AllowGapAffected && summary.GapAffectedCandidateCount > 0 {
 		sel.Reasons = append(sel.Reasons, fmt.Sprintf("gap affected candidates: %d", summary.GapAffectedCandidateCount))
 	}
+	if policy.RejectNoiseAffected && summary.NoiseAffectedCandidateCount > 0 {
+		sel.Reasons = append(sel.Reasons, fmt.Sprintf("noise affected candidates: %d", summary.NoiseAffectedCandidateCount))
+	}
 	for _, mm := range summary.Mismatches {
 		if mm.Severity == ShadowSeverityMajor {
 			sel.MajorMismatchCount++
@@ -61,6 +69,7 @@ func ValidateEngineMode(candidates CandidateTripEvidence, summary ShadowSummary,
 			sel.WarningCount++
 		}
 	}
+	sel.RejectedCount = len(sel.Reasons)
 	if len(sel.Reasons) > 0 {
 		sel.Accepted = false
 		if policy.FallbackToLegacyOnReject {

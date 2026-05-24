@@ -72,3 +72,16 @@ func TestWriteEngineDiagnosticsMotionWritesSpeedKPH(t *testing.T) {
 		t.Fatalf("expected speed_kmh value in motion diagnostics: %s", string(b))
 	}
 }
+
+func TestWriteEngineDiagnosticsSelectionIncludesCounts(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "x_engine_selection.csv")
+	diag := engine.Diagnostics{EngineSelection: engine.EngineModeSelection{RequestedTripSource: "engine", SelectedTripSource: "legacy", Accepted: false, FallbackUsed: true, Readiness: engine.ShadowReadinessPoorMatch, CandidateCount: 2, OfficialValidCount: 1, OfficialJitterCount: 0, RejectedCount: 1, Reasons: []string{"empty candidate trip output"}}}
+	if err := WriteEngineDiagnostics(diag, EngineDiagnosticPaths{Selection: p}, EngineDiagnosticOptions{Enabled: true, OutputSelection: true}); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(p)
+	if !strings.Contains(string(b), "candidate_count,official_valid_count,official_jitter_count,rejected_candidate_count") {
+		t.Fatalf("missing extended header: %s", string(b))
+	}
+}
