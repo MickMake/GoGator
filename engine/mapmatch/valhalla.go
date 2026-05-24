@@ -35,6 +35,27 @@ func NewValhallaMapMatcher(cfg ValhallaConfig) *ValhallaMapMatcher {
 	return &ValhallaMapMatcher{baseURL: strings.TrimRight(strings.TrimSpace(cfg.BaseURL), "/"), endpoint: endpoint, maxPointsPerRequest: cfg.MaxPointsPerRequest, client: &http.Client{Timeout: timeout}}
 }
 
+func (v *ValhallaMapMatcher) Validate() error {
+	if strings.TrimSpace(v.baseURL) == "" {
+		return fmt.Errorf("valhalla is enabled but base_url is empty")
+	}
+	endpoint := strings.TrimSpace(v.endpoint)
+	if endpoint == "" {
+		return fmt.Errorf("valhalla is enabled but endpoint is empty")
+	}
+	_, err := v.Match(MatchRequest{
+		Endpoint: endpoint,
+		Points: []MatchPoint{
+			{Lat: -33.86880, Lng: 151.20930},
+			{Lat: -33.86810, Lng: 151.21010},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("valhalla is enabled but unavailable or invalid: %w", err)
+	}
+	return nil
+}
+
 func (v *ValhallaMapMatcher) Match(req MatchRequest) (MatchResult, error) {
 	if len(req.Points) == 0 {
 		return MatchResult{}, nil

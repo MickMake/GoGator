@@ -258,3 +258,9 @@
 - Strengthened synthetic validation assertions to verify shadow readiness is actually exercised while keeping engine-mode gating guarded and explicit.
 - Updated `engine/VALIDATION.md` to clearly separate automated synthetic validation commands from optional/manual real-data validation flow.
 - Updated `scripts/smoke.sh` to include engine validation commands in the standard local verification path, alongside existing build and CLI smoke checks.
+
+## v0.26.20
+
+- Added fatal startup Valhalla validation when `valhalla.enabled: true` so processing now fails early for empty `base_url`, empty endpoint, unreachable service, HTTP errors, or undecodable responses.
+- Preserved advisory-only behaviour for per-trip map-match failures after startup validation succeeds, keeping candidate map-match diagnostics non-fatal.
+- Added focused tests for Valhalla enabled/disabled startup validation paths and successful minimal JSON connectivity validation.

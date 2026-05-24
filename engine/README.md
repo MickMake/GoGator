@@ -34,7 +34,8 @@ Defaults remain conservative:
 - Optional scaffold and client live under `engine/mapmatch`.
 - Disabled by default (`valhalla.enabled: false`).
 - No HTTP calls occur when disabled.
-- When enabled, map-match failures are captured as diagnostics and remain advisory-only by default.
+- When enabled, startup connectivity/config validation is required and is fatal on failure (empty `base_url`, empty endpoint, unreachable service, HTTP errors, or undecodable response).
+- After startup validation succeeds, per-trip map-match failures remain diagnostic/advisory by default.
 
 ## Route signature / H3 placeholder status
 
