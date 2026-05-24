@@ -61,6 +61,8 @@ type processOutputPaths struct {
 	EngineShadowMismatches string
 	EngineSelection        string
 	EngineMapMatch         string
+	EngineRouteSignatures  string
+	EngineRouteGroups      string
 	Expanded               string
 	Processed              string
 	Jitter                 string
@@ -258,6 +260,8 @@ func processPaths(prefix string) processOutputPaths {
 		EngineShadowMismatches: prefix + "_engine_shadow_mismatches.csv",
 		EngineSelection:        prefix + "_engine_selection.csv",
 		EngineMapMatch:         prefix + "_engine_mapmatch.csv",
+		EngineRouteSignatures:  prefix + "_engine_route_signatures.csv",
+		EngineRouteGroups:      prefix + "_engine_route_groups.csv",
 	}
 }
 
@@ -283,7 +287,7 @@ func writeProcessOutputs(paths processOutputPaths, res processResult) error {
 	if err := output.WriteAudit(paths.Audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount); err != nil {
 		return err
 	}
-	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison, ShadowSummary: paths.EngineShadowSummary, ShadowMismatches: paths.EngineShadowMismatches, Selection: paths.EngineSelection, MapMatch: paths.EngineMapMatch}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison, OutputShadowSummary: res.Config.Engine.Audit.OutputShadowSummary, OutputShadowMismatches: res.Config.Engine.Audit.OutputShadowMismatches, OutputSelection: true})
+	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison, ShadowSummary: paths.EngineShadowSummary, ShadowMismatches: paths.EngineShadowMismatches, Selection: paths.EngineSelection, MapMatch: paths.EngineMapMatch, RouteSignatures: paths.EngineRouteSignatures, RouteGroups: paths.EngineRouteGroups}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison, OutputShadowSummary: res.Config.Engine.Audit.OutputShadowSummary, OutputShadowMismatches: res.Config.Engine.Audit.OutputShadowMismatches, OutputSelection: true, OutputRouteSignatures: res.Config.Engine.RouteSignatures.Enabled, OutputRouteGroups: res.Config.Engine.RouteGrouping.Enabled})
 }
 
 func printProcessSummary(res processResult) {
@@ -475,11 +479,14 @@ func buildEngineConfig(cfg config.Config) engine.EngineConfig {
 			GapThresholdMinutes:         cfg.Engine.Motion.GapThresholdMinutes,
 			MinConsecutiveSamples:       cfg.Engine.Motion.MinConsecutiveSamples,
 		},
-		Quality:  cfg.Engine.Quality.Enabled,
-		Audit:    cfg.Engine.Audit.Enabled,
-		Valhalla: engine.ValhallaConfig{Enabled: cfg.Valhalla.Enabled, BaseURL: cfg.Valhalla.BaseURL, TimeoutSeconds: cfg.Valhalla.TimeoutSeconds, Endpoint: cfg.Valhalla.Endpoint, MaxPointsPerRequest: cfg.Valhalla.MaxPointsPerRequest},
-		H3:       cfg.H3.Enabled,
-		PostGIS:  cfg.PostGIS.Enabled,
+		Quality:         cfg.Engine.Quality.Enabled,
+		Audit:           cfg.Engine.Audit.Enabled,
+		Valhalla:        engine.ValhallaConfig{Enabled: cfg.Valhalla.Enabled, BaseURL: cfg.Valhalla.BaseURL, TimeoutSeconds: cfg.Valhalla.TimeoutSeconds, Endpoint: cfg.Valhalla.Endpoint, MaxPointsPerRequest: cfg.Valhalla.MaxPointsPerRequest},
+		H3:              cfg.H3.Enabled,
+		H3Resolution:    cfg.H3.Resolution,
+		RouteSignatures: cfg.Engine.RouteSignatures.Enabled,
+		RouteGrouping:   cfg.Engine.RouteGrouping.Enabled,
+		PostGIS:         cfg.PostGIS.Enabled,
 	}
 }
 

@@ -121,6 +121,9 @@ func TestRunDefaultEngineConfigIsBehaviorNeutral(t *testing.T) {
 	if !reflect.DeepEqual(normalizeTrips(base.Valid), normalizeTrips(withCfg.Valid)) || !reflect.DeepEqual(normalizeTrips(base.Jitter), normalizeTrips(withCfg.Jitter)) {
 		t.Fatalf("default engine config should not change behavior")
 	}
+	if len(base.Diagnostics().RouteSignatures) != 0 || len(base.Diagnostics().RouteGroups) != 0 {
+		t.Fatalf("route diagnostics should be disabled by default")
+	}
 }
 
 func TestRunBuildsEvidenceFromNormalizedPoints(t *testing.T) {

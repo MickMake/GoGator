@@ -52,6 +52,8 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	excursions := detectExcursions(visits, excCfg)
 	candidateTrips := detectCandidateTrips(visits, excursions, tripBuilderCfg)
 	mapMatchDiagnostics := buildMapMatchDiagnostics(matcher, points, candidateTrips.Trips, engineCfg.Valhalla)
+	routeSignatures := buildRouteSignatures(points, candidateTrips.Trips, mapMatchDiagnostics, engineCfg.RouteSignatures, engineCfg.H3Resolution)
+	routeGroups := buildRouteGroups(routeSignatures, engineCfg.RouteGrouping)
 	points = adapter.Classify(points, in)
 	valid, jitter := adapter.BuildTrips(points, in)
 	valid, jitter = adapter.ApplyImportant(valid, jitter, in)
@@ -69,7 +71,7 @@ func Run(ctx context.Context, in Input) (Result, error) {
 		}
 		comparison = compareCandidateTrips(candidateTrips, valid, jitter, shadowCfg)
 	}
-	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, CandidateTrips: candidateTrips, MapMatchDiagnostics: mapMatchDiagnostics, TripComparison: comparison, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
+	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, CandidateTrips: candidateTrips, MapMatchDiagnostics: mapMatchDiagnostics, RouteSignatures: routeSignatures, RouteGroups: routeGroups, TripComparison: comparison, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
 }
 
 func resolveEngineConfig(in Input) EngineConfig {
@@ -77,6 +79,9 @@ func resolveEngineConfig(in Input) EngineConfig {
 		return in.EngineConfig
 	}
 	return EngineConfig{
-		Valhalla: ValhallaConfig{Enabled: in.Config.Valhalla.Enabled, BaseURL: in.Config.Valhalla.BaseURL, TimeoutSeconds: in.Config.Valhalla.TimeoutSeconds, Endpoint: in.Config.Valhalla.Endpoint, MaxPointsPerRequest: in.Config.Valhalla.MaxPointsPerRequest},
+		Valhalla:        ValhallaConfig{Enabled: in.Config.Valhalla.Enabled, BaseURL: in.Config.Valhalla.BaseURL, TimeoutSeconds: in.Config.Valhalla.TimeoutSeconds, Endpoint: in.Config.Valhalla.Endpoint, MaxPointsPerRequest: in.Config.Valhalla.MaxPointsPerRequest},
+		RouteSignatures: in.Config.Engine.RouteSignatures.Enabled,
+		RouteGrouping:   in.Config.Engine.RouteGrouping.Enabled,
+		H3Resolution:    in.Config.H3.Resolution,
 	}
 }

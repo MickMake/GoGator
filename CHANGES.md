@@ -1,3 +1,12 @@
+
+## v0.26.16
+
+- Added passive engine route-signature diagnostics for candidate trips using a deterministic internal spatial grid placeholder (H3-style cell IDs without external H3 dependency).
+- Signature generation now prefers passive Valhalla matched shapes when present and safely falls back to candidate raw traces; insufficient traces are skipped with warnings.
+- Added passive deterministic route grouping diagnostics by identical route signatures.
+- Added optional diagnostic CSV outputs for route signatures and route groups when enabled, without changing official processed/jitter CSV schemas.
+- Added focused tests for deterministic signatures, duplicate-cell collapse, insufficient-point warnings, map-matched source preference, and grouping behavior.
+
 # Changes
 
 ## v0.26.15
