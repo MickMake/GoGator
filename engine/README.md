@@ -1,67 +1,58 @@
 # engine
 
-`engine` is GoGator's explicit orchestration seam for in-memory GPS processing.
+`engine` is GoGator's explicit processing seam for the v1 migration.
 
-## Current status (v0.26.19)
+## Purpose
 
-Implemented now:
-- `engine.Run(ctx, input)` is the compatibility orchestration seam wrapping the existing legacy processing sequence.
-- Passive engine diagnostics are implemented for evidence, quality, motion, stays, visits, excursions, candidate trips, trip comparison, shadow summary/mismatches, engine-mode selection, map-match diagnostics, route signatures, and route groups.
-- `engine.trip_source` supports `legacy` (default), `shadow`, and experimental `engine`.
+The package gives GoGator a testable, auditable orchestration boundary while preserving current CLI and output behaviour. For v1 migration work, stability wins over novelty.
 
-Passive/diagnostic-only today:
-- Candidate trip building and candidate-vs-legacy comparison.
-- Valhalla map-match diagnostics.
-- Route signatures and deterministic grouping.
-- Shadow readiness summaries and mismatch reports.
+## v1 migration guardrail
 
-Experimental/opt-in only:
-- `engine.trip_source: engine` official-output selection path.
-- Engine-mode readiness policy gating and optional explicit fallback to legacy.
+- Current `gogator` CLI behaviour and processed output schemas must remain stable unless explicitly changed.
+- `internal/app/process.go` calls `engine.Run(...)` as the seam.
+- Legacy `internal/gps` processing logic remains available and authoritative until engine output is proven by tests and explicitly promoted.
 
-## Trip source modes
+## Current seam
 
-- `legacy` (default): official processed valid/jitter output comes from the legacy trip pipeline.
-- `shadow`: official output still comes from legacy; shadow diagnostics are used for comparison only.
-- `engine`: official output uses adapted engine candidate trips, guarded by readiness validation (`engine.engine_mode`).
+- Entry point: `engine.Run(ctx, input)`.
+- Input/result contract: `engine.Input` and `engine.Result` (plus diagnostics snapshots) in `engine/types.go`.
+- Relationship to legacy: the orchestration path still wraps and preserves legacy trip outputs by default (`engine.trip_source: legacy`).
 
-Defaults remain conservative:
-- `engine.trip_source: legacy`
-- `engine.engine_mode.fallback_to_legacy_on_reject: false` (no silent fallback)
+## Target staged pipeline
 
-## Valhalla status
+The staged target pipeline remains:
 
-- Optional scaffold and client live under `engine/mapmatch`.
-- Disabled by default (`valhalla.enabled: false`).
-- No HTTP calls occur when disabled.
-- When enabled, startup connectivity/config validation is required and is fatal on failure (empty `base_url`, empty endpoint, unreachable service, HTTP errors, or undecodable response).
-- After startup validation succeeds, per-trip map-match failures remain diagnostic/advisory by default.
+1. evidence
+2. quality
+3. motion
+4. stays
+5. visits
+6. candidate trips
+7. map matching
+8. route signatures
+9. route grouping
+10. diagnostics
+11. final adaptation to existing outputs
 
-## Route signature / H3 placeholder status
+## Implemented now (v1.1 baseline)
 
-- Route signatures are deterministic and diagnostic-only.
-- No external H3 dependency is required.
-- No CGO requirement is introduced.
-- Grouping uses identical signature keys for passive diagnostics only.
+- Engine seam orchestration through `engine.Run(...)`.
+- Passive diagnostics for evidence, quality, motion, stays, visits, excursions, candidate trips, trip comparison, shadow summary/readiness, map-match diagnostics, route signatures, and route groups.
+- Conservative trip-source modes with default legacy output (`legacy`, `shadow`, experimental `engine`).
+- Compatibility-focused tests across engine stages and diagnostics behaviours.
 
-## PostGIS scaffold status
+## Scaffold-only / deferred
 
-- Optional scaffold under `engine/sitematch`.
-- Disabled by default (`postgis.enabled: false`), so no DB connection is attempted by default.
-- If explicitly enabled without full implementation, scaffold returns clear validation/not-implemented errors.
-- `engine/sitematch/schema.sql` documents intended future tables/indexing and is documentation-only in current releases.
+- No replacement trip algorithm is promoted as default behaviour.
+- Map matching integration remains optional and advisory (Valhalla scaffold/client path).
+- PostGIS-backed site matching remains scaffolded/optional and disabled by default.
+- Route signatures/grouping remain passive diagnostics, not destination-rewrite logic.
+- Any future promotion of engine-selected output requires explicit readiness evidence and tests.
 
-## Recommended safe workflow
+## Baseline checks
 
-1. Run normal default legacy mode (`engine.trip_source: legacy`).
-2. Enable diagnostics (`engine.audit.enabled` and specific outputs, or `output_diagnostics`).
-3. Inspect shadow summaries/mismatches on known representative data.
-4. Test `engine` mode only on known datasets with strict readiness policy.
-5. Keep fallback explicit (`fallback_to_legacy_on_reject`) and review selection diagnostics.
-
-## Stability guarantees for this stage
-
-- Default behaviour remains legacy.
-- CLI command names/arguments stay unchanged.
-- Official processed output schemas/headers stay unchanged.
-- Routes remain advisory and do not silently rewrite destinations.
+```bash
+go test ./...
+go build -o gogator ./cmd/gogator
+./gogator commands
+```
