@@ -7,6 +7,14 @@
 - Added optional diagnostic CSV outputs for route signatures and route groups when enabled, without changing official processed/jitter CSV schemas.
 - Added focused tests for deterministic signatures, duplicate-cell collapse, insufficient-point warnings, map-matched source preference, and grouping behavior.
 
+## v0.26.17
+
+- Added optional engine-side PostGIS site-matching scaffolding under `engine/sitematch` with a clean interface boundary, deterministic `NoopSiteMatcher`, and tested in-memory radius matcher helper for future staged integration.
+- Added PostGIS scaffold config fields (`postgis.dsn`, `postgis.match_radius_meters`, `postgis.audit_enabled`) while preserving safe defaults (`postgis.enabled: false`) and no database requirement by default.
+- Added scaffold `PostGISSiteMatcher` constructor validation and clear unsupported/not-implemented matching errors when explicitly enabled before a real DB-backed implementation exists.
+- Added `engine/sitematch/schema.sql` documenting intended future PostGIS tables/indexes for sites and audit persistence (visit/stay and route/candidate audit).
+- Preserved default legacy behaviour and official output schemas; no CLI command or processed CSV header changes.
+
 # Changes
 
 ## v0.26.15

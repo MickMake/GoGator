@@ -114,7 +114,12 @@ type H3 struct {
 	Enabled    bool
 	Resolution int
 }
-type PostGIS struct{ Enabled bool }
+type PostGIS struct {
+	Enabled           bool
+	DSN               string
+	MatchRadiusMeters float64
+	AuditEnabled      bool
+}
 
 type TripDetection struct {
 	MovingSpeedKPH                     float64
@@ -227,7 +232,7 @@ func Default() Config {
 		},
 		Valhalla: Valhalla{Enabled: false, BaseURL: "", TimeoutSeconds: 10, Endpoint: "trace_route", MaxPointsPerRequest: 500},
 		H3:       H3{Enabled: false, Resolution: 7},
-		PostGIS:  PostGIS{Enabled: false},
+		PostGIS:  PostGIS{Enabled: false, DSN: "", MatchRadiusMeters: 100, AuditEnabled: false},
 	}
 }
 
@@ -545,8 +550,15 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.H3.Resolution = i(val, cfg.H3.Resolution)
 		}
 	case "postgis":
-		if key == "enabled" {
+		switch key {
+		case "enabled":
 			cfg.PostGIS.Enabled = b(val, cfg.PostGIS.Enabled)
+		case "dsn":
+			cfg.PostGIS.DSN = val
+		case "match_radius_meters", "match_radius_metres":
+			cfg.PostGIS.MatchRadiusMeters = f(val, cfg.PostGIS.MatchRadiusMeters)
+		case "audit_enabled":
+			cfg.PostGIS.AuditEnabled = b(val, cfg.PostGIS.AuditEnabled)
 		}
 	}
 }

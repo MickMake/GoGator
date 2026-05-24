@@ -11,6 +11,11 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	adapter := LegacyAdapter{}
 	engineCfg := resolveEngineConfig(in)
 	matcher := newMapMatcher(engineCfg)
+	siteMatcher, err := newSiteMatcher(engineCfg)
+	if err != nil {
+		return Result{}, err
+	}
+	_ = siteMatcher
 	points := append([]gps.RawPoint(nil), in.Points...)
 	enableQuality := in.EngineConfig.Quality
 	motionCfg := in.EngineConfig.Motion
@@ -83,5 +88,6 @@ func resolveEngineConfig(in Input) EngineConfig {
 		RouteSignatures: in.Config.Engine.RouteSignatures.Enabled,
 		RouteGrouping:   in.Config.Engine.RouteGrouping.Enabled,
 		H3Resolution:    in.Config.H3.Resolution,
+		PostGIS:         PostGISConfig{Enabled: in.Config.PostGIS.Enabled, DSN: in.Config.PostGIS.DSN, MatchRadiusMeters: in.Config.PostGIS.MatchRadiusMeters, AuditEnabled: in.Config.PostGIS.AuditEnabled},
 	}
 }

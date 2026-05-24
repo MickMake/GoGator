@@ -36,6 +36,14 @@
 - Intended current use: inspect candidate-trip map-match quality before future route-confidence work.
 
 
+## Optional PostGIS site-matching scaffold (v0.26.17)
+
+- Added an `engine/sitematch` boundary with `SiteMatcher` interface, request/result/candidate/confidence/warning types, and a default `NoopSiteMatcher`.
+- PostGIS integration remains scaffold-only: `postgis.enabled` is `false` by default and no database connection is attempted unless explicitly enabled.
+- Added constructor-time validation for `postgis.dsn` and `postgis.match_radius_meters`; enabled scaffold returns a clear not-implemented error during matching.
+- Added a documented `engine/sitematch/schema.sql` placeholder describing intended future sites spatial index and audit tables.
+- Official trip output, route handling, readiness semantics, CLI commands, and processed CSV schemas remain unchanged.
+
 ## Passive route signatures and grouping diagnostics (v0.26.16)
 
 - Added passive route signatures for candidate trips using a deterministic internal spatial grid-cell placeholder (`grid:<resolution>:<lat_bucket>:<lon_bucket>`).

@@ -30,7 +30,14 @@ type EngineConfig struct {
 	H3Resolution      int
 	RouteSignatures   bool
 	RouteGrouping     bool
-	PostGIS           bool
+	PostGIS           PostGISConfig
+}
+
+type PostGISConfig struct {
+	Enabled           bool
+	DSN               string
+	MatchRadiusMeters float64
+	AuditEnabled      bool
 }
 
 type ValhallaConfig struct {

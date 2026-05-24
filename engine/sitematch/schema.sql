@@ -1,0 +1,46 @@
+-- PostGIS scaffold schema (documentation only for future implementation).
+-- This file is intentionally not applied by GoGator in v0.26.17.
+
+-- Future known sites table for spatial matching.
+-- CREATE TABLE IF NOT EXISTS postgis_sites (
+--   site_id BIGSERIAL PRIMARY KEY,
+--   site_name TEXT NOT NULL,
+--   site_address TEXT NOT NULL,
+--   site_radius_meters DOUBLE PRECISION NOT NULL DEFAULT 100,
+--   geom geography(Point, 4326) NOT NULL,
+--   metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+--   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+--   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- );
+
+-- Future spatial index for fast nearest-site/radius queries.
+-- CREATE INDEX IF NOT EXISTS idx_postgis_sites_geom ON postgis_sites USING GIST (geom);
+
+-- Future visit/stay audit table.
+-- CREATE TABLE IF NOT EXISTS postgis_visit_audit (
+--   audit_id BIGSERIAL PRIMARY KEY,
+--   source_type TEXT NOT NULL,
+--   source_id TEXT NOT NULL,
+--   observed_at TIMESTAMPTZ NOT NULL,
+--   latitude DOUBLE PRECISION NOT NULL,
+--   longitude DOUBLE PRECISION NOT NULL,
+--   radius_meters DOUBLE PRECISION NOT NULL,
+--   matched_site_id BIGINT,
+--   matched_distance_meters DOUBLE PRECISION,
+--   confidence_score DOUBLE PRECISION,
+--   warnings JSONB NOT NULL DEFAULT '[]'::jsonb,
+--   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- );
+
+-- Future route/candidate audit table.
+-- CREATE TABLE IF NOT EXISTS postgis_route_candidate_audit (
+--   audit_id BIGSERIAL PRIMARY KEY,
+--   candidate_id TEXT NOT NULL,
+--   source_type TEXT NOT NULL,
+--   source_id TEXT NOT NULL,
+--   origin_site_id BIGINT,
+--   destination_site_id BIGINT,
+--   candidate_trace JSONB NOT NULL,
+--   selected_site_matches JSONB NOT NULL,
+--   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- );
