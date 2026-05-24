@@ -25,8 +25,8 @@ Current command names and output files should remain available unless explicitly
 ## Basic usage
 
 ~~~bash
-gogator process <raw-gps.csv>
-gogator process <raw-gps.csv> <more-raw-gps.csv> ...
+gogator load <raw-gps.csv> <more-raw-gps.csv> ...
+gogator process
 gogator commands
 ~~~
 
