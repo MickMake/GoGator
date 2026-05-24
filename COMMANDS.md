@@ -2,16 +2,14 @@
 
 ## Current commands
 
-### `gogator process <raw-gps.csv> [more-raw-gps.csv ...]`
+### `gogator process`
 
 Intent: process raw Gator/Teltonika CSV rows into deterministic trip logs while preserving enough raw evidence to debug suspicious tracker behaviour.
 
 Examples:
 
 ```bash
-gogator process 2026-04_raw.csv
-gogator process 2026-04_raw.csv --timezone Australia/Sydney
-gogator process exports/2026-04_raw.csv --config gogator.yaml --sites sites.csv --routes routes.csv
+gogator process
 ```
 
 Design notes:
