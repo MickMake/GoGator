@@ -57,6 +57,38 @@ These points are fixed project intent.
 
 ## Source of truth hierarchy
 
+### Import/export file roles
+
+GoGator files have explicit roles. Do not blur them.
+
+The runtime authority is:
+
+~~~text
+database-backed evidence -> engine -> output writers
+~~~
+
+Files are not hidden runtime state.
+
+Import commands move external file data into the GoGator database. After import, the database is authoritative.
+
+Export commands move database records, reports, or database-backed engine output into reviewable files. Exported files are not runtime authority unless explicitly re-imported through an import command.
+
+The command direction is:
+
+~~~text
+import: file -> database
+export: database/engine -> file
+runtime: database -> engine
+~~~
+
+This applies to current and future import/export commands.
+
+Do not make `sites.tsv`, `routes.tsv`, trip reports, jitter reports, stats reports, issue reports, path reports, process CSV outputs, or any future generated file into a second source of truth.
+
+Do not build runtime trip construction around editing exported files and reading them back implicitly.
+
+If a file must influence runtime behaviour, it must be imported explicitly into the database through a documented import command.
+
 ### Raw GPS observations
 
 Raw GPS tracker observations are the canonical source evidence.
