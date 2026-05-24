@@ -8,6 +8,7 @@ type Diagnostics struct {
 	Excursions     []Excursion
 	CandidateTrips []CandidateTrip
 	TripComparison CandidateTripComparison
+	ShadowSummary  ShadowSummary
 }
 
 func (r Result) Diagnostics() Diagnostics {
@@ -19,5 +20,6 @@ func (r Result) Diagnostics() Diagnostics {
 		Excursions:     append([]Excursion(nil), r.Excursions.Excursions...),
 		CandidateTrips: append([]CandidateTrip(nil), r.CandidateTrips.Trips...),
 		TripComparison: r.TripComparison,
+		ShadowSummary:  r.TripComparison.ShadowSummary,
 	}
 }

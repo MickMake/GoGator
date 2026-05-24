@@ -27,6 +27,7 @@ type Engine struct {
 	Visits            EngineVisits
 	Excursions        EngineExcursions
 	TripBuilder       EngineTripBuilder
+	Shadow            EngineShadow
 	Motion            EngineMotion
 	Quality           EngineQuality
 	Audit             EngineAudit
@@ -57,6 +58,14 @@ type EngineTripBuilder struct {
 	MaxGapMinutes          float64
 	LowConfidenceThreshold float64
 }
+type EngineShadow struct {
+	Enabled                        bool
+	SummaryEnabled                 bool
+	MatchToleranceMinutes          float64
+	GoodMatchThresholdPercent      float64
+	ExcellentMatchThresholdPercent float64
+	WarnOnMajorMismatch            bool
+}
 type EngineMotion struct {
 	Enabled                     bool
 	StationarySpeedThresholdKPH float64
@@ -66,15 +75,17 @@ type EngineMotion struct {
 }
 type EngineQuality struct{ Enabled bool }
 type EngineAudit struct {
-	Enabled              bool
-	OutputDiagnostics    bool
-	OutputPoints         bool
-	OutputMotion         bool
-	OutputStays          bool
-	OutputVisits         bool
-	OutputExcursions     bool
-	OutputCandidateTrips bool
-	OutputTripComparison bool
+	Enabled                bool
+	OutputDiagnostics      bool
+	OutputPoints           bool
+	OutputMotion           bool
+	OutputStays            bool
+	OutputVisits           bool
+	OutputExcursions       bool
+	OutputCandidateTrips   bool
+	OutputTripComparison   bool
+	OutputShadowSummary    bool
+	OutputShadowMismatches bool
 }
 type Valhalla struct{ Enabled bool }
 type H3 struct{ Enabled bool }
@@ -176,6 +187,7 @@ func Default() Config {
 			Visits:      EngineVisits{Enabled: false, MinVisitDurationMinutes: 5},
 			Excursions:  EngineExcursions{Enabled: false, ShortOutAndBackMaxMinutes: 20, ShortOutAndBackMaxDistanceMeters: 5000},
 			TripBuilder: EngineTripBuilder{Enabled: false, PassiveOnly: true, CompareLegacy: false, MinTripDurationMinutes: 1, MaxGapMinutes: 20, LowConfidenceThreshold: 0.4},
+			Shadow:      EngineShadow{Enabled: false, SummaryEnabled: false, MatchToleranceMinutes: 20, GoodMatchThresholdPercent: 70, ExcellentMatchThresholdPercent: 90, WarnOnMajorMismatch: false},
 			Motion: EngineMotion{
 				Enabled:                     false,
 				StationarySpeedThresholdKPH: 2,
@@ -184,7 +196,7 @@ func Default() Config {
 				MinConsecutiveSamples:       2,
 			},
 			Quality: EngineQuality{Enabled: false},
-			Audit:   EngineAudit{Enabled: false, OutputDiagnostics: false, OutputPoints: false, OutputMotion: false, OutputStays: false, OutputVisits: false, OutputExcursions: false, OutputCandidateTrips: false, OutputTripComparison: false},
+			Audit:   EngineAudit{Enabled: false, OutputDiagnostics: false, OutputPoints: false, OutputMotion: false, OutputStays: false, OutputVisits: false, OutputExcursions: false, OutputCandidateTrips: false, OutputTripComparison: false, OutputShadowSummary: false, OutputShadowMismatches: false},
 		},
 		Valhalla: Valhalla{Enabled: false},
 		H3:       H3{Enabled: false},
@@ -397,6 +409,22 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.TripBuilder.LowConfidenceThreshold = f(val, cfg.Engine.TripBuilder.LowConfidenceThreshold)
 		}
 
+	case "engine.shadow":
+		switch key {
+		case "enabled":
+			cfg.Engine.Shadow.Enabled = b(val, cfg.Engine.Shadow.Enabled)
+		case "summary_enabled":
+			cfg.Engine.Shadow.SummaryEnabled = b(val, cfg.Engine.Shadow.SummaryEnabled)
+		case "match_tolerance_minutes":
+			cfg.Engine.Shadow.MatchToleranceMinutes = f(val, cfg.Engine.Shadow.MatchToleranceMinutes)
+		case "good_match_threshold_percent":
+			cfg.Engine.Shadow.GoodMatchThresholdPercent = f(val, cfg.Engine.Shadow.GoodMatchThresholdPercent)
+		case "excellent_match_threshold_percent":
+			cfg.Engine.Shadow.ExcellentMatchThresholdPercent = f(val, cfg.Engine.Shadow.ExcellentMatchThresholdPercent)
+		case "warn_on_major_mismatch":
+			cfg.Engine.Shadow.WarnOnMajorMismatch = b(val, cfg.Engine.Shadow.WarnOnMajorMismatch)
+		}
+
 	case "engine.motion":
 		switch key {
 		case "enabled":
@@ -434,6 +462,10 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.Audit.OutputCandidateTrips = b(val, cfg.Engine.Audit.OutputCandidateTrips)
 		case "output_trip_comparison":
 			cfg.Engine.Audit.OutputTripComparison = b(val, cfg.Engine.Audit.OutputTripComparison)
+		case "output_shadow_summary":
+			cfg.Engine.Audit.OutputShadowSummary = b(val, cfg.Engine.Audit.OutputShadowSummary)
+		case "output_shadow_mismatches":
+			cfg.Engine.Audit.OutputShadowMismatches = b(val, cfg.Engine.Audit.OutputShadowMismatches)
 		}
 	case "valhalla":
 		if key == "enabled" {

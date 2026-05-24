@@ -45,3 +45,16 @@ func TestWriteEngineDiagnosticsCandidateTripsHeader(t *testing.T) {
 		t.Fatalf("missing header")
 	}
 }
+
+func TestWriteEngineDiagnosticsShadowSummaryHeader(t *testing.T) {
+	d := t.TempDir()
+	p := filepath.Join(d, "x_engine_shadow_summary.csv")
+	err := WriteEngineDiagnostics(engine.Diagnostics{ShadowSummary: engine.ShadowSummary{Metrics: []engine.ShadowMetric{{Name: "x", Value: "1"}}}}, EngineDiagnosticPaths{ShadowSummary: p}, EngineDiagnosticOptions{Enabled: true, OutputShadowSummary: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(p)
+	if !strings.Contains(string(b), "metric,value,severity,notes") {
+		t.Fatalf("missing header")
+	}
+}

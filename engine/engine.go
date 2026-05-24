@@ -56,7 +56,15 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	review, sameSite := adapter.SplitJitter(jitter)
 	comparison := CandidateTripComparison{}
 	if tripBuilderCfg.Enabled && tripBuilderCfg.CompareLegacy {
-		comparison = compareCandidateTrips(candidateTrips, valid, jitter)
+		shadowCfg := ShadowConfig{
+			Enabled:                        in.Config.Engine.Shadow.Enabled,
+			SummaryEnabled:                 in.Config.Engine.Shadow.SummaryEnabled,
+			MatchToleranceMinutes:          in.Config.Engine.Shadow.MatchToleranceMinutes,
+			GoodMatchThresholdPercent:      in.Config.Engine.Shadow.GoodMatchThresholdPercent,
+			ExcellentMatchThresholdPercent: in.Config.Engine.Shadow.ExcellentMatchThresholdPercent,
+			WarnOnMajorMismatch:            in.Config.Engine.Shadow.WarnOnMajorMismatch,
+		}
+		comparison = compareCandidateTrips(candidateTrips, valid, jitter, shadowCfg)
 	}
 	return Result{Points: points, Evidence: evidence, Motion: motion, Stays: stays, Visits: visits, Excursions: excursions, CandidateTrips: candidateTrips, TripComparison: comparison, Valid: valid, Jitter: jitter, JitterReview: review, JitterSameSite: sameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: len(in.Sites), RouteCount: len(in.Routes)}, nil
 }
