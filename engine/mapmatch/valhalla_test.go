@@ -75,6 +75,41 @@ func TestValhallaEmptyInputSafe(t *testing.T) {
 	}
 }
 
+func TestValhallaValidateEmptyBaseURL(t *testing.T) {
+	m := NewValhallaMapMatcher(ValhallaConfig{BaseURL: ""})
+	if err := m.Validate(); err == nil || !strings.Contains(err.Error(), "base_url is empty") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestValhallaValidateUnreachable(t *testing.T) {
+	m := NewValhallaMapMatcher(ValhallaConfig{BaseURL: "http://127.0.0.1:1", Timeout: 100 * time.Millisecond})
+	if err := m.Validate(); err == nil || !strings.Contains(err.Error(), "unavailable or invalid") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestValhallaValidateHTTP500(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusInternalServerError) }))
+	defer ts.Close()
+	m := NewValhallaMapMatcher(ValhallaConfig{BaseURL: ts.URL})
+	if err := m.Validate(); err == nil || !strings.Contains(err.Error(), "HTTP error") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestValhallaValidatePassesWithMinimalValidJSON(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"trip":{"summary":{"length":0.1,"time":1}}}`))
+	}))
+	defer ts.Close()
+	m := NewValhallaMapMatcher(ValhallaConfig{BaseURL: ts.URL})
+	if err := m.Validate(); err != nil {
+		t.Fatalf("err=%v", err)
+	}
+}
+
 func TestValhallaMarshalErrorReturnedBeforeHTTP(t *testing.T) {
 	hit := false
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

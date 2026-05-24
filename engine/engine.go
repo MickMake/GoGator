@@ -11,6 +11,9 @@ func Run(ctx context.Context, in Input) (Result, error) {
 	adapter := LegacyAdapter{}
 	engineCfg := resolveEngineConfig(in)
 	matcher := newMapMatcher(engineCfg)
+	if err := validateMapMatcher(engineCfg, matcher); err != nil {
+		return Result{}, err
+	}
 	siteMatcher, err := newSiteMatcher(engineCfg)
 	if err != nil {
 		return Result{}, err
