@@ -1,5 +1,14 @@
 # Changes
 
+## v0.26.11
+
+- Added explicit `engine.trip_source` selection with supported values `legacy`, `shadow`, and `engine`, defaulting to `legacy`.
+- Preserved default processing behaviour: official valid/jitter outputs continue to come from the legacy pipeline unless `engine.trip_source: engine` is explicitly set.
+- Added candidate-trip adapter for experimental engine mode to convert engine candidate trips into existing output trip rows without CSV header changes.
+- Kept route observations/anomalies working in engine mode by applying existing route rules to adapted engine-output trips.
+- Added validation error for invalid `engine.trip_source` values with clear allowed values.
+- Updated engine docs with trip-source mode guidance and recommended shadow-first workflow for testing.
+
 ## v0.26.10.1
 
 - Preserved baseline candidate-vs-legacy trip comparison diagnostics when `engine.trip_builder.compare_legacy` is enabled even if shadow summary toggles are off, so trip comparison metrics continue to report expected counts.

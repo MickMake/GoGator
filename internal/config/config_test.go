@@ -21,6 +21,9 @@ func TestLoadWithoutNewSectionsUsesSafeDefaults(t *testing.T) {
 	if !cfg.Engine.Enabled || !cfg.Engine.CompatibilityMode {
 		t.Fatalf("engine defaults changed: %+v", cfg.Engine)
 	}
+	if cfg.Engine.TripSource != "legacy" {
+		t.Fatalf("expected default engine.trip_source legacy, got %q", cfg.Engine.TripSource)
+	}
 	if cfg.Engine.Audit.Enabled || cfg.Valhalla.Enabled || cfg.H3.Enabled || cfg.PostGIS.Enabled {
 		t.Fatalf("future integrations should be disabled by default: %+v %+v %+v %+v", cfg.Engine.Audit, cfg.Valhalla, cfg.H3, cfg.PostGIS)
 	}
@@ -50,7 +53,7 @@ func TestLoadNestedSectionSiblingResetsToParentSection(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "gogator.yaml")
-	data := "engine:\n  stay_detection:\n    enabled: true\n  compatibility_mode: false\n"
+	data := "engine:\n  stay_detection:\n    enabled: true\n  compatibility_mode: false\n  trip_source: shadow\n"
 	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -60,5 +63,8 @@ func TestLoadNestedSectionSiblingResetsToParentSection(t *testing.T) {
 	}
 	if cfg.Engine.CompatibilityMode {
 		t.Fatalf("expected compatibility_mode=false, got true")
+	}
+	if cfg.Engine.TripSource != "shadow" {
+		t.Fatalf("expected trip_source=shadow, got %q", cfg.Engine.TripSource)
 	}
 }

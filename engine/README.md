@@ -9,6 +9,17 @@
 - Core algorithms remain in `internal/gps` and `internal/routes` with no intended behaviour changes.
 - Compatibility mode is currently the only active behaviour path.
 
+## Trip source selection (v0.26.11)
+
+- New config key: `engine.trip_source`.
+- Supported values:
+  - `legacy` (default): official valid/jitter output comes from the legacy trip pipeline.
+  - `shadow`: official output still comes from legacy, while candidate-vs-legacy diagnostics remain available for comparison.
+  - `engine`: official output uses adapted engine candidate trips (experimental).
+- Default remains `legacy` to preserve current behaviour unless explicitly changed.
+- Engine mode is experimental; use shadow diagnostics first on representative test data before switching official output to engine mode.
+- No Valhalla, H3, or PostGIS integrations are added in this release.
+
 ## Config scaffolding (placeholders)
 
 - New configuration sections are now accepted and passed through `engine.Input.EngineConfig`:

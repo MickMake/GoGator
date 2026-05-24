@@ -312,6 +312,10 @@ func printProcessErrors(res processResult) {
 var runEngine = engine.Run
 
 func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules []routes.Route, cfg config.Config) (processResult, error) {
+	tripSource, err := resolveTripSource(cfg)
+	if err != nil {
+		return processResult{}, err
+	}
 	result, err := runEngine(context.Background(), engine.Input{
 		Points:       points,
 		Sites:        siteList,
@@ -322,19 +326,115 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 	if err != nil {
 		return processResult{}, fmt.Errorf("run engine pipeline: %w", err)
 	}
+	valid := result.Valid
+	jitter := result.Jitter
+	jitterReview := result.JitterReview
+	jitterSameSite := result.JitterSameSite
+	observations := result.RouteObservations
+	anomalies := result.RouteAnomalies
+	if tripSource == "engine" {
+		valid, jitter = adaptCandidateTrips(result.CandidateTrips.Trips, result.Points)
+		valid, observations, anomalies = routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
+		jitterReview, jitterSameSite = splitJitterTrips(jitter)
+	}
 	return processResult{
 		Points:            result.Points,
-		Valid:             result.Valid,
-		Jitter:            result.Jitter,
-		JitterReview:      result.JitterReview,
-		JitterSameSite:    result.JitterSameSite,
-		RouteObservations: result.RouteObservations,
-		RouteAnomalies:    result.RouteAnomalies,
+		Valid:             valid,
+		Jitter:            jitter,
+		JitterReview:      jitterReview,
+		JitterSameSite:    jitterSameSite,
+		RouteObservations: observations,
+		RouteAnomalies:    anomalies,
 		SiteCount:         result.SiteCount,
 		RouteCount:        result.RouteCount,
 		EngineDiagnostics: result.Diagnostics(),
 		Config:            cfg,
 	}, nil
+}
+
+func resolveTripSource(cfg config.Config) (string, error) {
+	source := strings.ToLower(strings.TrimSpace(cfg.Engine.TripSource))
+	if source == "" {
+		source = "legacy"
+	}
+	switch source {
+	case "legacy", "shadow", "engine":
+		return source, nil
+	default:
+		return "", fmt.Errorf("invalid engine.trip_source %q: valid values are legacy, shadow, engine", cfg.Engine.TripSource)
+	}
+}
+
+func adaptCandidateTrips(c []engine.CandidateTrip, points []gps.RawPoint) (valid []gps.Trip, jitter []gps.Trip) {
+	for i, ct := range c {
+		t := gps.Trip{
+			Index:           i + 1,
+			Start:           ct.StartTime,
+			End:             ct.EndTime,
+			DepartureSite:   ct.OriginLabel,
+			DestinationSite: ct.DestinationLabel,
+			DistanceKM:      ct.ApproxDistanceM / 1000.0,
+			DurationHours:   ct.EndTime.Sub(ct.StartTime).Hours(),
+		}
+		if p, ok := candidatePoint(points, ct.SourcePointStart); ok {
+			t.RawStartRow, t.DepartLat, t.DepartLng, t.Filename = p.RawRow, p.Lat, p.Lng, p.SourceFile
+		}
+		if p, ok := candidatePoint(points, ct.SourcePointEnd); ok {
+			t.RawEndRow, t.DestLat, t.DestLng = p.RawRow, p.Lat, p.Lng
+			if t.Filename == "" {
+				t.Filename = p.SourceFile
+			}
+		}
+		if t.RawEndRow < t.RawStartRow {
+			t.RawEndRow = t.RawStartRow
+		}
+		t.Flags = append(t.Flags, "engine_candidate", "engine_type:"+string(ct.Type), "engine_confidence:"+string(ct.Confidence))
+		for _, r := range ct.Reasons {
+			t.Flags = append(t.Flags, "engine_reason:"+string(r))
+		}
+		for _, w := range ct.Warnings {
+			t.Flags = append(t.Flags, "engine_warning:"+w)
+		}
+		if isCandidateJitter(ct) {
+			t.Jitter = true
+			jitter = append(jitter, t)
+			continue
+		}
+		valid = append(valid, t)
+	}
+	return valid, jitter
+}
+
+func isCandidateJitter(ct engine.CandidateTrip) bool {
+	if ct.Confidence == engine.CandidateConfidenceLow || ct.Type == engine.CandidateTripLowConfidence || ct.Type == engine.CandidateTripGapAffected || ct.Type == engine.CandidateTripNoiseAffected {
+		return true
+	}
+	for _, w := range ct.Warnings {
+		if w == "short_duration" {
+			return true
+		}
+	}
+	return false
+}
+
+func candidatePoint(points []gps.RawPoint, idx int) (gps.RawPoint, bool) {
+	if idx < 0 || idx >= len(points) {
+		return gps.RawPoint{}, false
+	}
+	return points[idx], true
+}
+
+func splitJitterTrips(jitter []gps.Trip) (review []gps.Trip, sameSite []gps.Trip) {
+	for _, t := range jitter {
+		from := strings.TrimSpace(t.DepartureSite)
+		to := strings.TrimSpace(t.DestinationSite)
+		if from != "" && to != "" && strings.EqualFold(from, to) {
+			sameSite = append(sameSite, t)
+		} else {
+			review = append(review, t)
+		}
+	}
+	return review, sameSite
 }
 
 func buildEngineConfig(cfg config.Config) engine.EngineConfig {
