@@ -3,6 +3,7 @@ package output
 import (
 	"encoding/csv"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -10,11 +11,11 @@ import (
 )
 
 type EngineDiagnosticPaths struct {
-	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison, ShadowSummary, ShadowMismatches string
+	Points, Motion, Stays, Visits, Excursions, CandidateTrips, TripComparison, ShadowSummary, ShadowMismatches, Selection string
 }
 
 type EngineDiagnosticOptions struct {
-	Enabled, OutputDiagnostics, OutputPoints, OutputMotion, OutputStays, OutputVisits, OutputExcursions, OutputCandidateTrips, OutputTripComparison, OutputShadowSummary, OutputShadowMismatches bool
+	Enabled, OutputDiagnostics, OutputPoints, OutputMotion, OutputStays, OutputVisits, OutputExcursions, OutputCandidateTrips, OutputTripComparison, OutputShadowSummary, OutputShadowMismatches, OutputSelection bool
 }
 
 func WriteEngineDiagnostics(diag engine.Diagnostics, paths EngineDiagnosticPaths, o EngineDiagnosticOptions) error {
@@ -64,6 +65,11 @@ func WriteEngineDiagnostics(diag engine.Diagnostics, paths EngineDiagnosticPaths
 	}
 	if all || o.OutputShadowMismatches {
 		if err := writeShadowMismatches(paths.ShadowMismatches, diag.ShadowSummary.Mismatches); err != nil {
+			return err
+		}
+	}
+	if all || o.OutputSelection {
+		if err := writeEngineSelection(paths.Selection, diag.EngineSelection); err != nil {
 			return err
 		}
 	}
@@ -238,6 +244,25 @@ func writeShadowMismatches(path string, mm []engine.ShadowMismatch) error {
 		}
 		if err := w.Write([]string{id, m.Type, string(m.Severity), fmtTime(m.LegacyStart), fmtTime(m.LegacyEnd), fmtTime(m.CandidateStart), fmtTime(m.CandidateEnd), ftoa(m.DeltaMinutes, 2), m.Notes}); err != nil {
 			return err
+		}
+	}
+	return flushClose(w, f)
+}
+
+func writeEngineSelection(path string, s engine.EngineModeSelection) error {
+	w, f, err := createCSV(path, []string{"selected_trip_source", "requested_trip_source", "accepted", "fallback_used", "readiness", "reason", "severity"})
+	if err != nil {
+		return err
+	}
+	if len(s.Reasons) == 0 {
+		if err := w.Write([]string{s.SelectedTripSource, s.RequestedTripSource, strconv.FormatBool(s.Accepted), strconv.FormatBool(s.FallbackUsed), string(s.Readiness), "", ""}); err != nil {
+			return err
+		}
+	} else {
+		for _, r := range s.Reasons {
+			if err := w.Write([]string{s.SelectedTripSource, s.RequestedTripSource, strconv.FormatBool(s.Accepted), strconv.FormatBool(s.FallbackUsed), string(s.Readiness), r, "warning"}); err != nil {
+				return err
+			}
 		}
 	}
 	return flushClose(w, f)

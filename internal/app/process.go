@@ -58,6 +58,7 @@ type processOutputPaths struct {
 	EngineComparison       string
 	EngineShadowSummary    string
 	EngineShadowMismatches string
+	EngineSelection        string
 	Expanded               string
 	Processed              string
 	Jitter                 string
@@ -253,6 +254,7 @@ func processPaths(prefix string) processOutputPaths {
 		EngineComparison:       prefix + "_engine_trip_comparison.csv",
 		EngineShadowSummary:    prefix + "_engine_shadow_summary.csv",
 		EngineShadowMismatches: prefix + "_engine_shadow_mismatches.csv",
+		EngineSelection:        prefix + "_engine_selection.csv",
 	}
 }
 
@@ -278,7 +280,7 @@ func writeProcessOutputs(paths processOutputPaths, res processResult) error {
 	if err := output.WriteAudit(paths.Audit, res.Source, res.SitesSource, res.RoutesSource, res.ConfigPath, res.Timezone, len(res.Points), len(res.Valid), len(res.Jitter), res.SiteCount, res.RouteCount); err != nil {
 		return err
 	}
-	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison, ShadowSummary: paths.EngineShadowSummary, ShadowMismatches: paths.EngineShadowMismatches}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison, OutputShadowSummary: res.Config.Engine.Audit.OutputShadowSummary, OutputShadowMismatches: res.Config.Engine.Audit.OutputShadowMismatches})
+	return output.WriteEngineDiagnostics(res.EngineDiagnostics, output.EngineDiagnosticPaths{Points: paths.EnginePoints, Motion: paths.EngineMotion, Stays: paths.EngineStays, Visits: paths.EngineVisits, Excursions: paths.EngineExcursions, CandidateTrips: paths.EngineCandidate, TripComparison: paths.EngineComparison, ShadowSummary: paths.EngineShadowSummary, ShadowMismatches: paths.EngineShadowMismatches, Selection: paths.EngineSelection}, output.EngineDiagnosticOptions{Enabled: res.Config.Engine.Audit.Enabled, OutputDiagnostics: res.Config.Engine.Audit.OutputDiagnostics, OutputPoints: res.Config.Engine.Audit.OutputPoints, OutputMotion: res.Config.Engine.Audit.OutputMotion, OutputStays: res.Config.Engine.Audit.OutputStays, OutputVisits: res.Config.Engine.Audit.OutputVisits, OutputExcursions: res.Config.Engine.Audit.OutputExcursions, OutputCandidateTrips: res.Config.Engine.Audit.OutputCandidateTrips, OutputTripComparison: res.Config.Engine.Audit.OutputTripComparison, OutputShadowSummary: res.Config.Engine.Audit.OutputShadowSummary, OutputShadowMismatches: res.Config.Engine.Audit.OutputShadowMismatches, OutputSelection: true})
 }
 
 func printProcessSummary(res processResult) {
@@ -316,40 +318,34 @@ func runProcessPipeline(points []gps.RawPoint, siteList []sites.Site, routeRules
 	if err != nil {
 		return processResult{}, err
 	}
-	result, err := runEngine(context.Background(), engine.Input{
-		Points:       points,
-		Sites:        siteList,
-		Routes:       routeRules,
-		Config:       cfg,
-		EngineConfig: buildEngineConfig(cfg),
-	})
+	result, err := runEngine(context.Background(), engine.Input{Points: points, Sites: siteList, Routes: routeRules, Config: cfg, EngineConfig: buildEngineConfig(cfg)})
 	if err != nil {
 		return processResult{}, fmt.Errorf("run engine pipeline: %w", err)
 	}
-	valid := result.Valid
-	jitter := result.Jitter
-	jitterReview := result.JitterReview
-	jitterSameSite := result.JitterSameSite
-	observations := result.RouteObservations
-	anomalies := result.RouteAnomalies
+	valid, jitter := result.Valid, result.Jitter
+	jitterReview, jitterSameSite := result.JitterReview, result.JitterSameSite
+	observations, anomalies := result.RouteObservations, result.RouteAnomalies
+	selection := engine.EngineModeSelection{RequestedTripSource: tripSource, SelectedTripSource: tripSource, Accepted: true, Readiness: result.TripComparison.ShadowSummary.Readiness}
 	if tripSource == "engine" {
-		valid, jitter = adaptCandidateTrips(result.CandidateTrips.Trips, result.Points)
-		valid, observations, anomalies = routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
-		jitterReview, jitterSameSite = splitJitterTrips(jitter)
+		pol := engine.EngineModePolicy{RequireMinReadiness: cfg.Engine.EngineMode.RequireMinReadiness, MinReadiness: engine.ShadowReadiness(cfg.Engine.EngineMode.MinReadiness), AllowLowConfidence: cfg.Engine.EngineMode.AllowLowConfidence, AllowGapAffected: cfg.Engine.EngineMode.AllowGapAffected, AllowEmptyCandidates: cfg.Engine.EngineMode.AllowEmptyCandidates, FallbackToLegacyOnReject: cfg.Engine.EngineMode.FallbackToLegacyOnReject, MaxUnmatchedLegacyPercent: cfg.Engine.EngineMode.MaxUnmatchedLegacyPercent, MaxBoundaryDeltaMinutes: cfg.Engine.EngineMode.MaxBoundaryDeltaMinutes}
+		selection, err = engine.ValidateEngineMode(result.CandidateTrips, result.TripComparison.ShadowSummary, pol)
+		if err != nil {
+			return processResult{}, err
+		}
+		if !selection.Accepted && !selection.FallbackUsed {
+			return processResult{}, fmt.Errorf("engine trip output rejected: %s", strings.Join(selection.Reasons, "; "))
+		}
+		if selection.FallbackUsed {
+			fmt.Fprintf(os.Stderr, "warning: engine trip output rejected, falling back to legacy: %s\n", strings.Join(selection.Reasons, "; "))
+		} else {
+			valid, jitter = adaptCandidateTrips(result.CandidateTrips.Trips, result.Points)
+			valid, observations, anomalies = routes.Apply(valid, routeRules, cfg.Site.UnknownSiteLabel)
+			jitterReview, jitterSameSite = splitJitterTrips(jitter)
+		}
 	}
-	return processResult{
-		Points:            result.Points,
-		Valid:             valid,
-		Jitter:            jitter,
-		JitterReview:      jitterReview,
-		JitterSameSite:    jitterSameSite,
-		RouteObservations: observations,
-		RouteAnomalies:    anomalies,
-		SiteCount:         result.SiteCount,
-		RouteCount:        result.RouteCount,
-		EngineDiagnostics: result.Diagnostics(),
-		Config:            cfg,
-	}, nil
+	diag := result.Diagnostics()
+	diag.EngineSelection = selection
+	return processResult{Points: result.Points, Valid: valid, Jitter: jitter, JitterReview: jitterReview, JitterSameSite: jitterSameSite, RouteObservations: observations, RouteAnomalies: anomalies, SiteCount: result.SiteCount, RouteCount: result.RouteCount, EngineDiagnostics: diag, Config: cfg}, nil
 }
 
 func resolveTripSource(cfg config.Config) (string, error) {

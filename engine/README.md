@@ -9,7 +9,7 @@
 - Core algorithms remain in `internal/gps` and `internal/routes` with no intended behaviour changes.
 - Compatibility mode is currently the only active behaviour path.
 
-## Trip source selection (v0.26.11)
+## Trip source selection (v0.26.12)
 
 - New config key: `engine.trip_source`.
 - Supported values:

@@ -24,6 +24,9 @@ func TestLoadWithoutNewSectionsUsesSafeDefaults(t *testing.T) {
 	if cfg.Engine.TripSource != "legacy" {
 		t.Fatalf("expected default engine.trip_source legacy, got %q", cfg.Engine.TripSource)
 	}
+	if !cfg.Engine.EngineMode.RequireMinReadiness || cfg.Engine.EngineMode.MinReadiness != "GoodMatch" {
+		t.Fatalf("expected conservative engine_mode defaults, got %+v", cfg.Engine.EngineMode)
+	}
 	if cfg.Engine.Audit.Enabled || cfg.Valhalla.Enabled || cfg.H3.Enabled || cfg.PostGIS.Enabled {
 		t.Fatalf("future integrations should be disabled by default: %+v %+v %+v %+v", cfg.Engine.Audit, cfg.Valhalla, cfg.H3, cfg.PostGIS)
 	}
