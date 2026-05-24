@@ -21,6 +21,16 @@ raw GPS -> movement/stationary windows -> candidate trips -> site matching -> co
 ```
 
 The key idea is to work out where the vehicle actually stopped before deciding what the trip was called. Otherwise the alligator gets to name suburbs, and that way lies dentistry.
+## Scope and authority
+
+This document describes the logical evidence-decision flow for trip construction.
+
+It does not override `PROJECT_INTENT.md`.
+
+The logical flow is:
+
+```text
+raw GPS -> movement/stationary windows -> candidate trips -> site matching -> continuity repair -> route annotation -> output/audit
 
 ---
 
