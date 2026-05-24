@@ -66,3 +66,7 @@ A matching route may increase confidence, annotate a trip, or flag an anomaly. I
 ## Output stability
 
 Processed CSV columns are high-stability. Avoid adding columns unless explicitly requested. The expanded/audit outputs are better places to preserve richer diagnostic detail.
+
+## v1.1 migration status
+
+v1.1 is a guardrail/baseline release for the staged `engine/` migration. It documents current seams and diagnostics, and does **not** intentionally change GPS trip-detection behaviour.

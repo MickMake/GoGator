@@ -264,3 +264,11 @@
 - Added fatal startup Valhalla validation when `valhalla.enabled: true` so processing now fails early for empty `base_url`, empty endpoint, unreachable service, HTTP errors, or undecodable responses.
 - Preserved advisory-only behaviour for per-trip map-match failures after startup validation succeeds, keeping candidate map-match diagnostics non-fatal.
 - Added focused tests for Valhalla enabled/disabled startup validation paths and successful minimal JSON connectivity validation.
+
+## v1.1
+
+- Verified baseline readiness checks for the current branch (`go test ./...`, `go build -o gogator ./cmd/gogator`, and `./gogator commands`).
+- Refreshed `engine/README.md` as a practical v1 migration guardrail reference, documenting the `engine.Run(...)` seam, current implementation status, scaffold/deferred areas, and baseline checks.
+- Added a v1.1 migration status note to design docs clarifying that this release is guardrail/baseline only with no intentional GPS trip-behaviour change.
+- No intentional processed CSV schema, CLI command-shape, or external-service requirement changes in this release.
+- Deferred work remains focused on proving staged engine output through targeted tests before any default behaviour promotion.
