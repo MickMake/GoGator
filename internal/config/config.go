@@ -99,7 +99,13 @@ type EngineAudit struct {
 	OutputShadowSummary    bool
 	OutputShadowMismatches bool
 }
-type Valhalla struct{ Enabled bool }
+type Valhalla struct {
+	Enabled             bool
+	BaseURL             string
+	TimeoutSeconds      int
+	Endpoint            string
+	MaxPointsPerRequest int
+}
 type H3 struct{ Enabled bool }
 type PostGIS struct{ Enabled bool }
 
@@ -212,7 +218,7 @@ func Default() Config {
 			Quality: EngineQuality{Enabled: false},
 			Audit:   EngineAudit{Enabled: false, OutputDiagnostics: false, OutputPoints: false, OutputMotion: false, OutputStays: false, OutputVisits: false, OutputExcursions: false, OutputCandidateTrips: false, OutputTripComparison: false, OutputShadowSummary: false, OutputShadowMismatches: false},
 		},
-		Valhalla: Valhalla{Enabled: false},
+		Valhalla: Valhalla{Enabled: false, BaseURL: "", TimeoutSeconds: 10, Endpoint: "trace_route", MaxPointsPerRequest: 500},
 		H3:       H3{Enabled: false},
 		PostGIS:  PostGIS{Enabled: false},
 	}
@@ -504,8 +510,17 @@ func apply(cfg *Config, section, key, val string) {
 			cfg.Engine.Audit.OutputShadowMismatches = b(val, cfg.Engine.Audit.OutputShadowMismatches)
 		}
 	case "valhalla":
-		if key == "enabled" {
+		switch key {
+		case "enabled":
 			cfg.Valhalla.Enabled = b(val, cfg.Valhalla.Enabled)
+		case "base_url":
+			cfg.Valhalla.BaseURL = val
+		case "timeout_seconds":
+			cfg.Valhalla.TimeoutSeconds = i(val, cfg.Valhalla.TimeoutSeconds)
+		case "endpoint":
+			cfg.Valhalla.Endpoint = val
+		case "max_points_per_request":
+			cfg.Valhalla.MaxPointsPerRequest = i(val, cfg.Valhalla.MaxPointsPerRequest)
 		}
 	case "h3":
 		if key == "enabled" {

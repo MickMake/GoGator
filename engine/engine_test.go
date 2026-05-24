@@ -110,7 +110,7 @@ func TestRunDefaultEngineConfigIsBehaviorNeutral(t *testing.T) {
 			Motion:            MotionConfig{Enabled: cfg.Engine.Motion.Enabled, StationarySpeedThresholdKPH: cfg.Engine.Motion.StationarySpeedThresholdKPH, MovingSpeedThresholdKPH: cfg.Engine.Motion.MovingSpeedThresholdKPH, GapThresholdMinutes: cfg.Engine.Motion.GapThresholdMinutes, MinConsecutiveSamples: cfg.Engine.Motion.MinConsecutiveSamples},
 			Quality:           cfg.Engine.Quality.Enabled,
 			Audit:             cfg.Engine.Audit.Enabled,
-			Valhalla:          cfg.Valhalla.Enabled,
+			Valhalla:          ValhallaConfig{Enabled: cfg.Valhalla.Enabled},
 			H3:                cfg.H3.Enabled,
 			PostGIS:           cfg.PostGIS.Enabled,
 		},

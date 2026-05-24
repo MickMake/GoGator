@@ -1,5 +1,13 @@
 # Changes
 
+## v0.26.14
+
+- Added optional Valhalla HTTP map-matching client scaffolding under `engine/mapmatch` with a clean map-matching interface boundary and a safe `NoopMapMatcher` default path.
+- Extended `valhalla` config scaffolding with `base_url`, `timeout_seconds`, `endpoint`, and `max_points_per_request`; defaults remain disabled and non-impacting.
+- Wired engine-side matcher construction only (Noop when disabled, Valhalla client when enabled) without altering trip building, routes, diagnostics decisions, or processed CSV output.
+- Added mocked HTTP unit tests for request/response handling, malformed JSON, HTTP errors, empty input safety, and disabled-default behaviour without requiring a live Valhalla server.
+
+
 ## v0.26.13
 
 - Hardened `engine.trip_source: engine` candidate adaptation with conservative confidence handling, traceability flags, and robust unknown-endpoint safety while preserving stable processed CSV headers.
