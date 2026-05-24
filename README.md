@@ -2,13 +2,13 @@
 
 GoGator turns raw Gator/Teltonika GPS tracker evidence into deterministic, auditable, spreadsheet-friendly trip records for a trade vehicle.
 
-Raw GPS observations are canonical evidence. GoGator must preserve enough evidence to explain each trip decision.
+Raw GPS observations are canonical evidence. GoGator must preserve enough source detail to explain every trip decision.
 
-## Project authority
+## Authoritative specification
 
-`PROJECT_INTENT.md` is the gold-standard project specification.
+`AUTHORITATIVE_SPECIFICATION.md` is the controlling project specification.
 
-If any other document, implementation detail, or legacy behaviour conflicts with `PROJECT_INTENT.md`, the project intent wins.
+If any document, implementation detail, test expectation, generated output, or legacy behaviour conflicts with `AUTHORITATIVE_SPECIFICATION.md`, the authoritative specification wins.
 
 ## Runtime direction
 
@@ -30,17 +30,17 @@ gogator process <raw-gps.csv> <more-raw-gps.csv> ...
 gogator commands
 ~~~
 
-## Current compatibility note
+## Compatibility note
 
 The file-based processing workflow remains available as part of the user-facing contract.
 
-CSV/TSV files such as `sites.csv` and `routes.csv` are compatibility, import/export, review, and pre-population paths. They are not the long-term runtime source of truth.
+CSV/TSV files such as `sites.csv` and `routes.csv` are compatibility, import/export, review, bootstrap, and pre-population paths. They are not the long-term runtime source of truth.
 
 ## Reference documents
 
 Read these in order:
 
-1. `PROJECT_INTENT.md` — authoritative project intent
+1. `AUTHORITATIVE_SPECIFICATION.md` — controlling project specification
 2. `COMMANDS.md` — command examples and command surface
 3. `ROUTE_MAPPING_PROCEDURE.md` — logical trip-decision flow
 4. `TRACKER_SIGNALS.md` — raw tracker params and signal meanings
